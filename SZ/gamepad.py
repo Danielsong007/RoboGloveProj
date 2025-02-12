@@ -1,43 +1,31 @@
 import pygame
 import sys
 
-# 初始化pygame
 pygame.init()
-
-# 初始化手柄
 pygame.joystick.init()
-
-# 检查手柄数量
 if pygame.joystick.get_count() == 0:
-    print("没有检测到手柄")
+    print("No gamepad")
     pygame.quit()
     sys.exit()
 
-# 获取手柄
-joystick = pygame.joystick.Joystick(0)
+joystick = pygame.joystick.Joystick(1) # Attention
 joystick.init()
+print("Name of gamepad:", joystick.get_name())
 
-print("游戏手柄名称:", joystick.get_name())
-
-# 事件循环
 try:
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
-            # 检查手柄按键事件
             if event.type == pygame.JOYBUTTONDOWN:
-                print(f"按钮 {event.button} 被按下")
+                print("Button {} Down".format(event.button))
             elif event.type == pygame.JOYBUTTONUP:
-                print(f"按钮 {event.button} 被释放")
-
-            # 检查摇杆移动
+                print("Button {} Up".format(event.button))
             if event.type == pygame.JOYAXISMOTION:
-                print(f"摇杆 {event.axis} 移动到 {event.value}")
+                print("JoyAxis {} Moved to {}".format(event.axis, event.value))
 
 except KeyboardInterrupt:
-    print("程序被终止")
+    print("End!!!")
 finally:
     pygame.quit()
