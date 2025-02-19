@@ -1,31 +1,43 @@
 import pygame
 import sys
+import time
+from xyz_demo.xyz_utils import xyz_utils
 
 pygame.init()
 pygame.joystick.init()
-if pygame.joystick.get_count() == 0:
-    print("No gamepad")
-    pygame.quit()
-    sys.exit()
-
-joystick = pygame.joystick.Joystick(1) # Attention
+joystick = pygame.joystick.Joystick(0) # Attention
 joystick.init()
 print("Name of gamepad:", joystick.get_name())
 
-try:
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.JOYBUTTONDOWN:
-                print("Button {} Down".format(event.button))
-            elif event.type == pygame.JOYBUTTONUP:
-                print("Button {} Up".format(event.button))
-            if event.type == pygame.JOYAXISMOTION:
-                print("JoyAxis {} Moved to {}".format(event.axis, event.value))
 
-except KeyboardInterrupt:
-    print("End!!!")
-finally:
-    pygame.quit()
+def main():
+    try:
+        myXYZ = xyz_utils()
+        myXYZ.OpenEnableZero_ALL()
+        while True:
+            time.sleep(0.1)
+            for event in pygame.event.get():
+                if event.type == pygame.JOYAXISMOTION:
+                    print("JoyAxis {} Moved to {}".format(event.axis, event.value))
+                    if event.axis == 1:
+                        myXYZ.AxisMode_Jog(3,3000*event.value) # Axis, Vel
+                    elif event.axis == 3:
+                        myXYZ.AxisMode_Jog(1,-400*event.value) # Axis, Vel
+                    elif event.axis == 4:
+                        myXYZ.AxisMode_Jog(2,400*event.value) # Axis, Vel
+                elif event.type == pygame.JOYBUTTONDOWN:
+                    print("Button {} Down".format(event.button))
+                elif event.type == pygame.JOYBUTTONUP:
+                    print("Button {} Up".format(event.button))
+                else:
+                    print('No gamepad command!!!')
+
+    except KeyboardInterrupt:
+        print("Ctrl-C is pressed!")
+    finally:
+        myXYZ.SafeQuit()
+        pygame.quit()
+        sys.exit(0)
+
+if __name__ == "__main__":
+    main()
