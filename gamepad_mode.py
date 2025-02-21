@@ -14,17 +14,18 @@ def main():
     try:
         myXYZ = xyz_utils()
         myXYZ.OpenEnableZero_ALL()
+        # myXYZ.dll.GA_ECatGetSdoValue(3, 6077 , 0, *pSdoValue, short*pPdoFlag,short nLen,short nSignFlag)
         while True:
             time.sleep(0.1)
             for event in pygame.event.get():
                 if event.type == pygame.JOYAXISMOTION:
                     print("JoyAxis {} Moved to {}".format(event.axis, event.value))
                     if event.axis == 1:
-                        myXYZ.AxisMode_Jog(3,3000*event.value) # Axis, Vel
+                        myXYZ.AxisMode_Jog(3,6,1000*event.value) # Axis, Acc, Vel
                     elif event.axis == 3:
-                        myXYZ.AxisMode_Jog(1,-400*event.value) # Axis, Vel
+                        myXYZ.AxisMode_Jog(1,6,-700*event.value)
                     elif event.axis == 4:
-                        myXYZ.AxisMode_Jog(2,400*event.value) # Axis, Vel
+                        myXYZ.AxisMode_Jog(2,2,400*event.value)
                 elif event.type == pygame.JOYBUTTONDOWN:
                     print("Button {} Down".format(event.button))
                 elif event.type == pygame.JOYBUTTONUP:

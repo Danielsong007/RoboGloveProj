@@ -39,10 +39,10 @@ class xyz_utils():
         ReV2=self.dll.GA_AxisOff(2)
         ReV3=self.dll.GA_AxisOff(3)
         ReV4=self.dll.GA_AxisOff(4)
-        ReV5=self.AxisMode_Jog(1,0) # Axis, Vel
-        ReV6=self.AxisMode_Jog(2,0) # Axis, Vel
-        ReV7=self.AxisMode_Jog(3,0) # Axis, Vel
-        ReV8=self.AxisMode_Jog(4,0) # Axis, Vel
+        ReV5=self.AxisMode_Jog(1,1,0)
+        ReV6=self.AxisMode_Jog(2,1,0)
+        ReV7=self.AxisMode_Jog(3,1,0)
+        ReV8=self.AxisMode_Jog(4,1,0)
         ReV9=self.dll.GA_Close()
 
     def Get_Pos(self,axis_id):
@@ -52,32 +52,15 @@ class xyz_utils():
         ReV2=self.dll.GA_GetAxisEncPos(axis_id,byref(dEncPos),1,0) # Encoder position
         print('Axis',axis_id,':', 'Planned pos',dPrfPos, ',', 'Encoder pos',dEncPos)
 
-    def AxisMode_Trap(self,axis_id,target_pos,target_vel):
+    def AxisMode_Trap(self,axis_id,target_pos,target_vel): # AxisMode_Trap(axis_id,600000,300)
         ReV1=self.dll.GA_PrfTrap(axis_id)
         ReV2=self.dll.GA_SetTrapPrmSingle(axis_id,c_double(1.0),c_double(1.0),c_double(0.0),0)
         ReV3=self.dll.GA_SetPos(axis_id,c_long(target_pos)) # Pulse
         ReV4=self.dll.GA_SetVel(axis_id,c_double(target_vel)) # Pulse/ms
         ReV5=self.dll.GA_Update(0X0001<<(axis_id-1))
 
-    def AxisMode_Jog(self,axis_id,vel):
+    def AxisMode_Jog(self,axis_id,acc,vel): # AxisMode_Jog(3,1,-100)
         ReV1=self.dll.GA_PrfJog(axis_id)
-        ReV2=self.dll.GA_SetJogPrmSingle(axis_id,c_double(5),c_double(5),c_double(0.0)) # ACC DEC SMOOTH
+        ReV2=self.dll.GA_SetJogPrmSingle(axis_id,c_double(acc),c_double(acc),c_double(0.0)) # ACC DEC SMOOTH
         ReV1=self.dll.GA_SetVel(axis_id,c_double(vel))
         ReV2=self.dll.GA_Update(0X0001<<(axis_id-1)) # 0XFF
-
-def main():
-    try:
-        myXYZ = xyz_utils()
-        myXYZ.OpenEnableZero_ALL()
-        # myXYZ.AxisMode_Trap(axis_id,600000,300) # Axis, Pos, Vel
-        # time.sleep(3)
-        myXYZ.AxisMode_Jog(3,-100) # Axis, Vel
-        time.sleep(2)
-    except KeyboardInterrupt:
-        print("Ctrl-C pressed!")
-    finally:
-        myXYZ.SafeQuit()
-        sys.exit(0)
-
-if __name__ == "__main__":
-    main()
