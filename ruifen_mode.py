@@ -16,8 +16,7 @@ def main():
             velocity=150*(x_angle)
             if abs(x_angle) < 10:
                 myXYZ.AxisMode_Jog(1,80,velocity)
-            print(f"Velocit: {velocity}")
-            print()
+                print(f"Velocity: {velocity}")
             # print(f"X轴角度: {x_angle}°, Y轴角度: {y_angle}°")
 
     except KeyboardInterrupt:
