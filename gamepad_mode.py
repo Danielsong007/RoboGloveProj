@@ -14,7 +14,6 @@ def main():
     try:
         myXYZ = xyz_utils()
         myXYZ.OpenEnableZero_ALL()
-        # myXYZ.dll.GA_ECatGetSdoValue(3, 6077 , 0, *pSdoValue, short*pPdoFlag,short nLen,short nSignFlag)
         while True:
             time.sleep(0.1)
             for event in pygame.event.get():
