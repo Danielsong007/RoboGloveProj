@@ -11,6 +11,7 @@ def main():
         myXYZ = xyz_utils()
         myXYZ.OpenEnableZero_ALL()
         force_init=dayang.read_angles()
+        movable=0
         while True:
             time.sleep(0.05)
             x_angle, y_angle = ruifen.read_angles()
@@ -18,19 +19,22 @@ def main():
             y_angle=y_angle-(4.3)
             print(f'x: {x_angle}, y: {y_angle}')
 
-            # force=dayang.read_angles()-force_init
-            # print(f"force: {force}")
-            # if force > 20:
-            #     myXYZ.AxisMode_Jog(3,30,-10*force)
-            # elif force < 3:
-            #     myXYZ.AxisMode_Jog(3,30,200)
-            # else:
-            #     myXYZ.AxisMode_Jog(3,30,0)
-
-            if abs(x_angle) < 20:
-                myXYZ.AxisMode_Jog(2,30,30*x_angle)
-            if abs(y_angle) < 20:
-                myXYZ.AxisMode_Jog(1,30,30*y_angle)
+            force=dayang.read_angles()-force_init
+            print(f"force: {force}")
+            if force > 20: # Up
+                myXYZ.AxisMode_Jog(3,30,-10*force)
+                movable=0
+            elif force < 3: # Down
+                myXYZ.AxisMode_Jog(3,30,200)
+                movable=0
+            else: # Suspend
+                myXYZ.AxisMode_Jog(3,30,0)
+                movable=1
+            if movable==1:
+                if abs(x_angle) < 20:
+                    myXYZ.AxisMode_Jog(2,20,30*x_angle)
+                if abs(y_angle) < 20:
+                    myXYZ.AxisMode_Jog(1,30,30*y_angle)
 
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")
