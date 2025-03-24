@@ -3,7 +3,6 @@ import ctypes
 import time
 import sys
 
-
 class xyz_utils():
     def __init__(self):
         self.dll = ctypes.CDLL('xyz_demo/libGAS-LINUX-DLL.so')
@@ -13,7 +12,7 @@ class xyz_utils():
         ReV2=self.dll.GA_Reset()
         ReV3=self.dll.GA_ECatInit()
         ReV4=self.dll.GA_Stop(0XFF,0)
-        time.sleep(1)
+        time.sleep(0.1)
         ReV5=self.dll.GA_AxisOn(1) # Enable
         ReV6=self.dll.GA_AxisOn(2)
         ReV7=self.dll.GA_AxisOn(4)
@@ -24,7 +23,13 @@ class xyz_utils():
         ReV11=self.dll.GA_ZeroPos(4,1)
         ReV12=self.dll.GA_ZeroPos(3,1)
         ReV13=self.SetGearFollow(4,2) # Axis 4 follows Axis 2
-        print('ALL Enabled & ALL Zero & Axis4 follows Axis2:', ReV1,ReV2)
+        ReV14 = self.dll.GA_LmtsOn(1,-1) # Hard Limit
+        ReV15 = self.dll.GA_LmtsOn(2,-1)
+        ReV16=self.dll.GA_SetHardLimN(1,0,0,5)
+        ReV17=self.dll.GA_SetHardLimP(1,0,0,4)
+        ReV18=self.dll.GA_SetHardLimN(2,0,0,3)
+        ReV19=self.dll.GA_SetHardLimP(2,0,0,2)
+        print('ALL: Enabled & Zero & Axis 4 follows Axis 2 & Hard Limit')
 
     def SetGearFollow(self,id_slave,id_master):
         ReV1=self.dll.GA_PrfGear(id_slave,0)
@@ -64,3 +69,21 @@ class xyz_utils():
         ReV2=self.dll.GA_SetJogPrmSingle(axis_id,c_double(acc),c_double(acc),c_double(0.0)) # ACC DEC SMOOTH
         ReV1=self.dll.GA_SetVel(axis_id,c_double(vel))
         ReV2=self.dll.GA_Update(0X0001<<(axis_id-1)) # 0XFF
+
+
+# 使用示例
+if __name__ == "__main__":
+    myXYZ = xyz_utils()
+    myXYZ.OpenEnableZero_ALL()
+    try:
+        myXYZ.AxisMode_Jog(3,30,-80)
+        time.sleep(30)  # 等待 100ms，确保命令已发送
+    except KeyboardInterrupt:
+        print("Ctrl-C is pressed!")
+    finally:
+        myXYZ.SafeQuit()
+        sys.exit(0)
+
+
+
+
