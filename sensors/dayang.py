@@ -19,9 +19,10 @@ class DaYangSensor:
 # 使用示例
 if __name__ == "__main__":
     sensor = DaYangSensor()
+    force_init=sensor.read_angles()
     try:
         while True:
-            force=sensor.read_angles()
+            force=sensor.read_angles()-force_init
             print(force)
             time.sleep(0.01)  # 等待 100ms，确保命令已发送
     except KeyboardInterrupt:
