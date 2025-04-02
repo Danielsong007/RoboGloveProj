@@ -14,7 +14,10 @@ class DaYangSensor:
         response = self.ser.read(9)  # 读取传感器应答命令
         # print(f"Response in HEX: {response.hex().upper()}")
         force_data = int.from_bytes(response[3:7], byteorder='big')
-        return force_data
+        if force_data>10000:
+            return 0
+        else:
+            return force_data
 
     def close(self): # 关闭串口连接
         self.ser.close()
@@ -25,7 +28,7 @@ if __name__ == "__main__":
     force_init=sensor.read_angles()
     try:
         while True:
-            force=sensor.read_angles()-force_init
+            force=sensor.read_angles()
             print(force,force_init)
             time.sleep(0.01)  # 等待 100ms，确保命令已发送
     except KeyboardInterrupt:
