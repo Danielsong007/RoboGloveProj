@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<robot name="xyz_platform_fixed">
+
+  <!-- 基础世界链接 -->
+  <link name="world"/>
+
+  <!-- X轴移动平台 -->
+  <link name="x_axis">
+    <visual>
+      <geometry>
+        <box size="2.2 0.2 0.2"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="2.2 0.2 0.2"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="10.0"/>
+      <inertia ixx="0.5" ixy="0" ixz="0" iyy="0.5" iyz="0" izz="0.5"/>
+    </inertial>
+  </link>
+
+  <joint name="x_joint" type="prismatic">
+    <parent link="world"/>
+    <child link="x_axis"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-1.0" upper="1.0" effort="1000" velocity="2.0"/>
+    <dynamics damping="0.7"/>
+  </joint>
+
+  <!-- Y轴移动平台 -->
+  <link name="y_axis">
+    <visual>
+      <geometry>
+        <box size="0.2 2.2 0.2"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0 1 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.2 2.2 0.2"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="8.0"/>
+      <inertia ixx="0.4" ixy="0" ixz="0" iyy="0.4" iyz="0" izz="0.4"/>
+    </inertial>
+  </link>
+
+  <joint name="y_joint" type="prismatic">
+    <parent link="x_axis"/>
+    <child link="y_axis"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.0" upper="1.0" effort="1000" velocity="2.0"/>
+    <dynamics damping="0.7"/>
+  </joint>
+
+  <!-- Z轴移动平台 -->
+  <link name="z_axis">
+    <visual>
+      <geometry>
+        <box size="0.2 0.2 2.2"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.2 0.2 2.2"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="6.0"/>
+      <inertia ixx="0.3" ixy="0" ixz="0" iyy="0.3" iyz="0" izz="0.3"/>
+    </inertial>
+  </link>
+
+  <joint name="z_joint" type="prismatic">
+    <parent link="y_axis"/>
+    <child link="z_axis"/>
+    <axis xyz="0 0 1"/>
+    <origin xyz="0 0 -2"/>
+    <limit lower="-10" upper="10" effort="1000" velocity="1.5"/>
+    <dynamics damping="0.7"/>
+  </joint>
+
+  <!-- 末端执行器（可视化标记） -->
+  <link name="end_effector">
+    <visual>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="1 1 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+
+  <joint name="ee_fixed_joint" type="fixed">
+    <parent link="z_axis"/>
+    <child link="end_effector"/>
+    <origin xyz="0 0 -1.1"/>
+  </joint>
+</robot>

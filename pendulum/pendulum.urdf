@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<robot name="spherical_pendulum">
+
+  <!-- 基础世界链接 -->
+  <link name="world"/>
+
+  <!-- 第一旋转关节（绕X轴） -->
+  <link name="joint_x">
+    <visual>
+      <geometry>
+        <cylinder radius="0.02" length="0.1"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <joint name="joint_x_axis" type="revolute">
+    <parent link="world"/>
+    <child link="joint_x"/>
+    <axis xyz="1 0 0"/>  <!-- X轴旋转 -->
+    <limit lower="-3.14" upper="3.14" effort="100" velocity="10"/>
+    <dynamics damping="2"/> <!-- 增加旋转阻尼 -->
+  </joint>
+
+  <!-- 第二旋转关节（绕Y轴） -->
+  <link name="joint_y">
+    <visual>
+      <geometry>
+        <cylinder radius="0.02" length="0.1"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0 1 0 1"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <joint name="joint_y_axis" type="revolute">
+    <parent link="joint_x"/>
+    <child link="joint_y"/>
+    <axis xyz="0 1 0"/>  <!-- Y轴旋转 -->
+    <limit lower="-3.14" upper="3.14" effort="100" velocity="10"/>
+    <dynamics damping="2"/> <!-- 增加旋转阻尼 -->
+  </joint>
+
+  <!-- 摆杆 -->
+  <link name="rod">
+    <visual>
+      <geometry>
+        <cylinder radius="0.01" length="1.0"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.5 0.5 0.5 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.01" length="1.0"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+
+  <joint name="joint_rod" type="fixed">
+    <parent link="joint_y"/>
+    <child link="rod"/>
+    <origin xyz="0 0 -0.5"/>  <!-- 摆杆连接点 -->
+  </joint>
+
+  <!-- 钢球 -->
+  <link name="ball">
+    <visual>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+      <material name="metal">
+        <color rgba="0.7 0.7 0.8 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="2.0"/>  <!-- 钢球质量较大 -->
+      <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+    </inertial>
+  </link>
+
+  <joint name="joint_ball" type="fixed">
+    <parent link="rod"/>
+    <child link="ball"/>
+    <origin xyz="0 0 -0.5"/>  <!-- 钢球位于摆杆末端 -->
+  </joint>
+</robot>
