@@ -21,16 +21,16 @@ def main():
 
             force=dayang.read_angles()
             print(f"force: {force}")
-            if force > 150: # Up
+            if force > 200: # Up
                 myXYZ.AxisMode_Jog(1,3,0)
                 myXYZ.AxisMode_Jog(2,3,0)
                 myXYZ.AxisMode_Jog(3,30,-3*force)
-            elif force < 20: # Suspend
+            elif force < 8: # Suspend
                 myXYZ.AxisMode_Jog(1,3,0)
                 myXYZ.AxisMode_Jog(2,3,0)
                 myXYZ.AxisMode_Jog(3,30,0)
             else: # Down
-                myXYZ.AxisMode_Jog(3,30,600)
+                myXYZ.AxisMode_Jog(3,30,1200)
                 # if abs(x_angle) < 20:
                 #     myXYZ.AxisMode_Jog(2,2,40*x_angle)
                 # if abs(y_angle) < 20:
