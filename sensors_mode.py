@@ -24,13 +24,13 @@ def main():
             if force > 250: # Up
                 myXYZ.AxisMode_Jog(1,3,0)
                 myXYZ.AxisMode_Jog(2,3,0)
-                myXYZ.AxisMode_Jog(3,30,-3*force)
-            elif force < 10: # Suspend
+                myXYZ.AxisMode_Jog(3,30,-4*force)
+            elif force < 25: # Suspend
                 myXYZ.AxisMode_Jog(1,3,0)
                 myXYZ.AxisMode_Jog(2,3,0)
                 myXYZ.AxisMode_Jog(3,30,0)
             else: # Down
-                myXYZ.AxisMode_Jog(3,30,1500)
+                myXYZ.AxisMode_Jog(3,30,3000)
                 # if abs(x_angle) < 20:
                 #     myXYZ.AxisMode_Jog(2,2,40*x_angle)
                 # if abs(y_angle) < 20:
