@@ -23,12 +23,15 @@ class xyz_utils():
         ReV11=self.dll.GA_ZeroPos(4,1)
         ReV12=self.dll.GA_ZeroPos(3,1)
         ReV13=self.SetGearFollow(4,2) # Axis 4 follows Axis 2
-        ReV14 = self.dll.GA_LmtsOn(1,-1) # Hard Limit
+        ReV14 = self.dll.GA_LmtsOn(1,-1)
         ReV15 = self.dll.GA_LmtsOn(2,-1)
-        ReV16=self.dll.GA_SetHardLimN(1,0,0,5)
+        ReV16=self.dll.GA_SetHardLimN(1,0,0,5) # Hard Limit
         ReV17=self.dll.GA_SetHardLimP(1,0,0,4)
         ReV18=self.dll.GA_SetHardLimN(2,0,0,3)
         ReV19=self.dll.GA_SetHardLimP(2,0,0,2)
+        softlimit=1000*1000*8
+        ReV20=self.dll.GA_SetSoftLimit(3,softlimit,-softlimit) # Soft Limit
+        time.sleep(1)
         print('ALL: Enabled & Zero & Axis 4 follows Axis 2 & Hard Limit')
 
     def SetGearFollow(self,id_slave,id_master):
@@ -76,8 +79,10 @@ if __name__ == "__main__":
     myXYZ = xyz_utils()
     myXYZ.OpenEnableZero_ALL()
     try:
-        myXYZ.AxisMode_Jog(3,30,-80)
-        time.sleep(30)  # 等待 100ms，确保命令已发送
+        while True:
+            myXYZ.AxisMode_Jog(3,30,1000)
+            myXYZ.Get_Pos(3)
+            time.sleep(0.1)
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")
     finally:
