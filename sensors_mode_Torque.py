@@ -17,11 +17,16 @@ def main():
             time.sleep(dt)
             # Frope=Srope.read_angles()
             Fhand=Shand.read_angles()
-            Fgoal=(0.15*Fhand-75)
-            if Fgoal>200:
-                Fgoal=200
-            print(Fgoal)
-            myXYZ.Set_Torque(3,Fgoal)
+            Fgoal=Fhand-650
+            if Fgoal>1000:
+                Fgoal=1000
+            CurPos=myXYZ.Get_Pos(3)/1000000
+            if (CurPos>13 and Fgoal>0) or (CurPos<0.02 and Fgoal<0):
+                Vgoal=0
+            else:
+                Vgoal=0.2*Fgoal
+            print(Vgoal)
+            myXYZ.Set_Torque(3,Vgoal)
 
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")

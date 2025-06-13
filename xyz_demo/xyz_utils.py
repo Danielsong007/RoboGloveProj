@@ -29,7 +29,7 @@ class xyz_utils():
         ReV17=self.dll.GA_SetHardLimP(1,0,0,4)
         ReV18=self.dll.GA_SetHardLimN(2,0,0,3)
         ReV19=self.dll.GA_SetHardLimP(2,0,0,2)
-        softlimit=1000*1000*3
+        softlimit=1000*1000*1
         ReV20=self.dll.GA_SetSoftLimit(3,softlimit,-softlimit) # Soft Limit
         time.sleep(1)
         print('ALL: Enabled & Zero & Axis 4 follows Axis 2 & Hard Limit')
@@ -58,6 +58,7 @@ class xyz_utils():
         ReV1=self.dll.GA_GetPrfPos(axis_id,byref(dPrfPos),1,0) # Planned position
         dEncPos=c_double(0.0)
         ReV2=self.dll.GA_GetAxisEncPos(axis_id,byref(dEncPos),1,0) # Encoder position
+        return dEncPos.value
         print('Axis',axis_id,':', 'Planned pos',dPrfPos, ',', 'Encoder pos',dEncPos)
 
     def AxisMode_Trap(self,axis_id,target_pos,target_vel): # AxisMode_Trap(axis_id,600000,300)
