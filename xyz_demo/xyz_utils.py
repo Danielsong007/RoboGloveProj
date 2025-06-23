@@ -80,6 +80,7 @@ class xyz_utils():
     def Set_Torque(self,axis_id,torque): # 设置目标转矩(6071h), 0.1%单位, 100表示10%额定转矩
         IntTorque=int(torque)
         a = self.dll.GA_ECatSetSdoValue(axis_id, 0x6071, 0, IntTorque, 2)
+        # print (a)
 
 # 使用示例
 if __name__ == "__main__":

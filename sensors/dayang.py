@@ -2,11 +2,10 @@ import serial
 import time
 
 class DaYangSensor:
-    def __init__(self,port_name):
+    def __init__(self,port_name,zero):
         self.ser = serial.Serial(port=port_name, baudrate=19200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, timeout=1)
-        self.ser.write(bytes([0x01, 0x10, 0x06, 0x2A, 0x00, 0x02, 0x04, 0x00, 0x00, 0x00, 0x01, 0x9B, 0xA8])) # Zero
-        # response = self.ser.read(8)  # 读取传感器应答命令
-        # print(f"Response in HEX: {response.hex().upper()}")
+        if zero==1:
+            self.ser.write(bytes([0x01, 0x10, 0x06, 0x2A, 0x00, 0x02, 0x04, 0x00, 0x00, 0x00, 0x01, 0x9B, 0xA8])) # Zero
 
     def read_angles(self): # 读取传感器角度数据
         self.ser.flushInput()  # 清空串口接收缓冲区
