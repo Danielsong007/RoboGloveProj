@@ -29,7 +29,7 @@ class xyz_utils():
         ReV17=self.dll.GA_SetHardLimP(1,0,0,4)
         ReV18=self.dll.GA_SetHardLimN(2,0,0,3)
         ReV19=self.dll.GA_SetHardLimP(2,0,0,2)
-        softlimit=1000*1000*1
+        softlimit=1000*1000*5
         ReV20=self.dll.GA_SetSoftLimit(3,softlimit,-softlimit) # Soft Limit
         time.sleep(1)
         print('ALL: Enabled & Zero & Axis 4 follows Axis 2 & Hard Limit')
@@ -76,20 +76,23 @@ class xyz_utils():
     
     def AxisMode_Torque(self,axis_id):
         self.dll.GA_ECatSetSdoValue(axis_id, 0x6060, 0, 4, 1)  # 6060h=4（PT模式）
+        # IntVelMax=2000*1000 # Max Velocity Setting
+        # a = self.dll.GA_ECatSetSdoValue(axis_id, 0x607F, 0, IntVelMax, 2)
+        # print (a)
 
     def Set_Torque(self,axis_id,torque): # 设置目标转矩(6071h), 0.1%单位, 100表示10%额定转矩
         IntTorque=int(torque)
         a = self.dll.GA_ECatSetSdoValue(axis_id, 0x6071, 0, IntTorque, 2)
-        # print (a)
 
-# 使用示例
+
+# Demos
 if __name__ == "__main__":
     myXYZ = xyz_utils()
-    myXYZ.AxisMode_Torque(3)
+    myXYZ.AxisMode_Torque(3) # Only current mode
     myXYZ.OpenEnableZero_ALL()
     try:
         while True:
-            myXYZ.Set_Torque(3,-60)
+            myXYZ.Set_Torque(3,80)
             # myXYZ.AxisMode_Jog(3,30,1000)
             time.sleep(0.1)
     except KeyboardInterrupt:
@@ -97,3 +100,4 @@ if __name__ == "__main__":
     finally:
         myXYZ.SafeQuit()
         sys.exit(0)
+

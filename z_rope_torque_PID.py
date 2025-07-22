@@ -11,7 +11,7 @@ def main():
         myXYZ = xyz_utils()
         myXYZ.AxisMode_Torque(3)
         myXYZ.OpenEnableZero_ALL()
-        Cgoal_last=0
+        Tgoal_L=0
         
         while True:
             dt=0.005
@@ -19,33 +19,32 @@ def main():
             Frope=Srope.read_angles()
             Fhand=Shand.read_angles()      
             CurPos=myXYZ.Get_Pos(3)/1000000
-            print('Fhand:',Fhand,'\t','Frope:',Frope,'\t','Cgoal_last:',Cgoal_last)
+            print('Fhand:',Fhand,'\t','Frope:',Frope,'\t','Tgoal_L:',Tgoal_L)
 
             if Fhand>800:
-                Fgoal=1600
+                Fgoal=1800
                 err=Fgoal-Frope
-                Cgoal_min=-20
-                Cgoal_max=1*Fgoal
+                diff=30
                 if err>0:
-                    err=500
+                    Tgoal=Tgoal_L+diff
                 else:
-                    err=-500
-                Cgoal=Cgoal_last+0.01*err
-                if Cgoal<Cgoal_min:
-                    Cgoal=Cgoal_min
-                if Cgoal>Cgoal_max:
-                    Cgoal=Cgoal_max
-                print('going going going')
+                    Tgoal=Tgoal_L-diff
+
+                Tgoal_min=-100
+                Tgoal_max=0.8*Fgoal
+                if Tgoal<Tgoal_min:
+                    Tgoal=Tgoal_min
+                if Tgoal>Tgoal_max:
+                    Tgoal=Tgoal_max
             else:
-                Cgoal=0
-                print('Down Down Down')
+                Tgoal=0
 
             if CurPos>8:
-                Cgoal=-20
-            if CurPos<0 and Cgoal<0:
-                Cgoal=-5
-            myXYZ.Set_Torque(3,Cgoal)
-            Cgoal_last=Cgoal
+                Tgoal=-20
+            if CurPos<0 and Tgoal<0:
+                Tgoal=-5
+            myXYZ.Set_Torque(3,Tgoal)
+            Tgoal_L=Tgoal
 
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")
