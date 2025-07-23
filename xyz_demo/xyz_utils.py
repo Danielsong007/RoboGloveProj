@@ -6,10 +6,11 @@ import sys
 class xyz_utils():
     def __init__(self):
         self.dll = ctypes.CDLL('xyz_demo/libGAS-LINUX-DLL.so')
-        ReV1=self.dll.GA_OpenByIP(b'192.168.0.200',b'192.168.0.1',0,0)
+        ReV1=self.dll.GA_OpenByIP(b'192.168.0.200',b'192.168.0.1',0,0) # IP: My computer, Board
         ReV2=self.dll.GA_Reset()
+        ReV2=self.dll.GA_ECatLoadPDOConfig()
         ReV3=self.dll.GA_ECatInit()
-        # ReV4=self.dll.GA_Stop(0XFF,0)
+        ReV4=self.dll.GA_Stop(0XFF,0)
         time.sleep(0.1)
 
     def OpenEnableZero_ALL(self):
@@ -75,26 +76,68 @@ class xyz_utils():
         ReV2=self.dll.GA_Update(0X0001<<(axis_id-1)) # 0XFF
     
     def AxisMode_Torque(self,axis_id):
-        self.dll.GA_ECatSetSdoValue(axis_id, 0x6060, 0, 4, 1)  # 6060h=4（PT模式）
-        # IntVelMax=2000*1000 # Max Velocity Setting
-        # a = self.dll.GA_ECatSetSdoValue(axis_id, 0x607F, 0, IntVelMax, 2)
-        # print (a)
+        i=0
+        while i<3:
+            i=i+1
+            self.dll.GA_ECatSetSdoValue(axis_id, 0x6060, 0, 4, 1)  # PT模式
+            time.sleep(0.05)
+        FVAULE = c_int32(0)
+        nFlag=c_int16(0)
+        a = self.dll.GA_ECatGetSdoValue(axis_id, 0x6060, 0, byref(FVAULE), byref(nFlag), 1, 0)
+        print (a,FVAULE)
+        
+        i=0
+        while i<3:
+            i=i+1
+            Value=3300000 # Max Velocity
+            a = self.dll.GA_ECatSetSdoValue(axis_id, 0x607F, 0, Value, 4)
+            time.sleep(0.05)
+        FVAULE = c_int32(0)
+        nFlag=c_int16(0)
+        a = self.dll.GA_ECatGetSdoValue(axis_id, 0x607F, 0, byref(FVAULE), byref(nFlag), 4, 0)
+        print (a,FVAULE)
+
+        i=0
+        while i<3:
+            i=i+1
+            Value=700 # Max Acc
+            a = self.dll.GA_ECatSetSdoValue(axis_id, 0x6087, 0, Value, 4)
+            time.sleep(0.05)
+        FVAULE = c_int32(0)
+        nFlag=c_int16(0)
+        a = self.dll.GA_ECatGetSdoValue(axis_id, 0x6087, 0, byref(FVAULE), byref(nFlag), 4, 0)
+        print (a,FVAULE)
 
     def Set_Torque(self,axis_id,torque): # 设置目标转矩(6071h), 0.1%单位, 100表示10%额定转矩
-        IntTorque=int(torque)
-        a = self.dll.GA_ECatSetSdoValue(axis_id, 0x6071, 0, IntTorque, 2)
+        i=0
+        while i<4:
+            IntTorque=c_int16(torque)
+            a0 = self.dll.GA_ECatSetSdoValue(axis_id, 0x6071, 0, IntTorque, 2)
+            i=i+1
+            time.sleep(0.07)
+
+        nFlag=c_int16(0)
+        Goal_T = c_int16(0)
+        self.dll.GA_ECatGetSdoValue(axis_id, 0x6071, 0, byref(Goal_T), byref(nFlag), 2, 0)
+
+        Actual_T = c_int16(0)
+        self.dll.GA_ECatGetSdoValue(axis_id, 0x6077, 0, byref(Actual_T), byref(nFlag), 2, 0)
+    
+        Actual_Vel = c_int32(0)
+        self.dll.GA_ECatGetSdoValue(axis_id, 0x606C, 0, byref(Actual_Vel), byref(nFlag), 4, 0)
+        return Goal_T.value,Actual_T.value,Actual_Vel.value
 
 
 # Demos
 if __name__ == "__main__":
     myXYZ = xyz_utils()
-    myXYZ.AxisMode_Torque(3) # Only current mode
     myXYZ.OpenEnableZero_ALL()
+    myXYZ.AxisMode_Torque(3) # Only current mode
     try:
         while True:
-            myXYZ.Set_Torque(3,80)
+            myXYZ.Set_Torque(3,120)
             # myXYZ.AxisMode_Jog(3,30,1000)
-            time.sleep(0.1)
+            time.sleep(0.01)
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")
     finally:
