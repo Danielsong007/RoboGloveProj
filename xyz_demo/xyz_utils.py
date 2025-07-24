@@ -19,10 +19,10 @@ class xyz_utils():
         ReV7=self.dll.GA_AxisOn(4)
         ReV8=self.dll.GA_AxisOn(3)
         time.sleep(6)
-        ReV9=self.dll.GA_ZeroPos(1,1)
-        ReV10=self.dll.GA_ZeroPos(2,1)
-        ReV11=self.dll.GA_ZeroPos(4,1)
-        ReV12=self.dll.GA_ZeroPos(3,1)
+        # ReV9=self.dll.GA_ZeroPos(1,1)
+        # ReV10=self.dll.GA_ZeroPos(2,1)
+        # ReV11=self.dll.GA_ZeroPos(4,1)
+        # ReV12=self.dll.GA_ZeroPos(3,1)
         ReV13=self.SetGearFollow(4,2) # Axis 4 follows Axis 2
         ReV14 = self.dll.GA_LmtsOn(1,-1)
         ReV15 = self.dll.GA_LmtsOn(2,-1)
@@ -100,7 +100,7 @@ class xyz_utils():
         i=0
         while i<3:
             i=i+1
-            Value=700 # Max Acc
+            Value=10000 # Max Acc
             a = self.dll.GA_ECatSetSdoValue(axis_id, 0x6087, 0, Value, 4)
             time.sleep(0.05)
         FVAULE = c_int32(0)
@@ -115,17 +115,16 @@ class xyz_utils():
             a0 = self.dll.GA_ECatSetSdoValue(axis_id, 0x6071, 0, IntTorque, 2)
             i=i+1
             time.sleep(0.07)
-
-        nFlag=c_int16(0)
-        Goal_T = c_int16(0)
-        self.dll.GA_ECatGetSdoValue(axis_id, 0x6071, 0, byref(Goal_T), byref(nFlag), 2, 0)
-
-        Actual_T = c_int16(0)
-        self.dll.GA_ECatGetSdoValue(axis_id, 0x6077, 0, byref(Actual_T), byref(nFlag), 2, 0)
     
-        Actual_Vel = c_int32(0)
-        self.dll.GA_ECatGetSdoValue(axis_id, 0x606C, 0, byref(Actual_Vel), byref(nFlag), 4, 0)
-        return Goal_T.value,Actual_T.value,Actual_Vel.value
+    def Read_Paras(self,axis_id):
+        nFlag=c_int16(0)
+        T_Sent = c_int16(0)
+        self.dll.GA_ECatGetSdoValue(axis_id, 0x6071, 0, byref(T_Sent), byref(nFlag), 2, 0)
+        T_Actual = c_int16(0)
+        self.dll.GA_ECatGetSdoValue(axis_id, 0x6077, 0, byref(T_Actual), byref(nFlag), 2, 0)
+        V_Actual = c_int32(0)
+        self.dll.GA_ECatGetSdoValue(axis_id, 0x606C, 0, byref(V_Actual), byref(nFlag), 4, 0)
+        return T_Sent.value,T_Actual.value,V_Actual.value
 
 
 # Demos
@@ -135,8 +134,9 @@ if __name__ == "__main__":
     myXYZ.AxisMode_Torque(3) # Only current mode
     try:
         while True:
-            myXYZ.Set_Torque(3,120)
+            # myXYZ.Set_Torque(3,-120)
             # myXYZ.AxisMode_Jog(3,30,1000)
+            print(myXYZ.Get_Pos(3))
             time.sleep(0.01)
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")
