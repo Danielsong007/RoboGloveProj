@@ -23,7 +23,7 @@ class DaYangSensor:
 
 # 使用示例
 if __name__ == "__main__":
-    sensor = DaYangSensor('/dev/ttyUSB1')
+    sensor = DaYangSensor('/dev/ttyUSB0',0)
     try:
         while True:
             force=sensor.read_angles()

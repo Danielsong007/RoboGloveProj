@@ -19,10 +19,6 @@ class xyz_utils():
         ReV7=self.dll.GA_AxisOn(4)
         ReV8=self.dll.GA_AxisOn(3)
         time.sleep(6)
-        # ReV9=self.dll.GA_ZeroPos(1,1)
-        # ReV10=self.dll.GA_ZeroPos(2,1)
-        # ReV11=self.dll.GA_ZeroPos(4,1)
-        # ReV12=self.dll.GA_ZeroPos(3,1)
         ReV13=self.SetGearFollow(4,2) # Axis 4 follows Axis 2
         ReV14 = self.dll.GA_LmtsOn(1,-1)
         ReV15 = self.dll.GA_LmtsOn(2,-1)
@@ -30,10 +26,16 @@ class xyz_utils():
         ReV17=self.dll.GA_SetHardLimP(1,0,0,4)
         ReV18=self.dll.GA_SetHardLimN(2,0,0,3)
         ReV19=self.dll.GA_SetHardLimP(2,0,0,2)
-        softlimit=1000*1000*5
-        ReV20=self.dll.GA_SetSoftLimit(3,softlimit,-softlimit) # Soft Limit
         time.sleep(1)
         print('ALL: Enabled & Zero & Axis 4 follows Axis 2 & Hard Limit')
+    
+    def Safe_Jog(self,axis_id):
+        ReV9=self.dll.GA_ZeroPos(1,1)
+        ReV10=self.dll.GA_ZeroPos(2,1)
+        ReV11=self.dll.GA_ZeroPos(4,1)
+        ReV12=self.dll.GA_ZeroPos(3,1)
+        softlimit=1000*1000*9
+        ReV20=self.dll.GA_SetSoftLimit(3,softlimit,-softlimit) # Soft Limit
 
     def SetGearFollow(self,id_slave,id_master):
         ReV1=self.dll.GA_PrfGear(id_slave,0)
@@ -100,7 +102,7 @@ class xyz_utils():
         i=0
         while i<3:
             i=i+1
-            Value=10000 # Max Acc
+            Value=20000 # Max Acc
             a = self.dll.GA_ECatSetSdoValue(axis_id, 0x6087, 0, Value, 4)
             time.sleep(0.05)
         FVAULE = c_int32(0)
@@ -108,13 +110,20 @@ class xyz_utils():
         a = self.dll.GA_ECatGetSdoValue(axis_id, 0x6087, 0, byref(FVAULE), byref(nFlag), 4, 0)
         print (a,FVAULE)
 
-    def Set_Torque(self,axis_id,torque): # 设置目标转矩(6071h), 0.1%单位, 100表示10%额定转矩
+    def Set_Torque_Multi(self,axis_id,torque): # 设置目标转矩(6071h), 0.1%单位, 100表示10%额定转矩
         i=0
         while i<4:
             IntTorque=c_int16(torque)
             a0 = self.dll.GA_ECatSetSdoValue(axis_id, 0x6071, 0, IntTorque, 2)
             i=i+1
             time.sleep(0.07)
+
+    def Set_Torque(self,axis_id,torque): # 设置目标转矩(6071h), 0.1%单位, 100表示10%额定转矩
+        IntTorque=c_int16(torque)
+        a0 = self.dll.GA_ECatSetSdoValue(axis_id, 0x6071, 0, IntTorque, 2)
+        time.sleep(0.02)
+        IntTorque=c_int16(torque)
+        a0 = self.dll.GA_ECatSetSdoValue(axis_id, 0x6071, 0, IntTorque, 2)
     
     def Read_Paras(self,axis_id):
         nFlag=c_int16(0)
@@ -127,15 +136,30 @@ class xyz_utils():
         return T_Sent.value,T_Actual.value,V_Actual.value
 
 
-# Demos
+# Torque Demo
 if __name__ == "__main__":
     myXYZ = xyz_utils()
     myXYZ.OpenEnableZero_ALL()
     myXYZ.AxisMode_Torque(3) # Only current mode
     try:
         while True:
-            # myXYZ.Set_Torque(3,-120)
-            # myXYZ.AxisMode_Jog(3,30,1000)
+            myXYZ.Set_Torque(3,-120)
+            myXYZ.Read_Paras(3)
+            time.sleep(0.01)
+    except KeyboardInterrupt:
+        print("Ctrl-C is pressed!")
+    finally:
+        myXYZ.SafeQuit()
+        sys.exit(0)
+
+# Jog Demo
+if __name__ == "__main__":
+    myXYZ = xyz_utils()
+    myXYZ.OpenEnableZero_ALL()
+    myXYZ.Safe_Jog(3)
+    try:
+        while True:
+            myXYZ.AxisMode_Jog(3,30,1000)
             print(myXYZ.Get_Pos(3))
             time.sleep(0.01)
     except KeyboardInterrupt:

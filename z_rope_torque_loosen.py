@@ -13,7 +13,6 @@ def main():
         myXYZ = xyz_utils()
         myXYZ.OpenEnableZero_ALL()
         myXYZ.AxisMode_Torque(3)
-        V_last=0
         ThreS_Lift=550
         Mode=0
         
@@ -24,7 +23,7 @@ def main():
             Hand_S=Shand.read_angles()
 
             if Hand_S>50:
-                Mode=1
+                Mode=1 # Up Mode
                 Rope_B=2500 # Box
                 # Rope_B=400 # Luggage
                 err=Rope_B-Rope_S
@@ -39,29 +38,30 @@ def main():
                     Tgoal=Tgoal_max
             else:
                 if Rope_S<ThreS_Lift:
-                    Mode=2
-                    Rope_B=30 # Null
+                    Mode=2 # Loosen Mode
+                    Rope_B=80
                     err=Rope_B-Rope_S
                     if err<0:
                         Tgoal=-120
                     else:
-                        Tgoal=55
+                        Tgoal=65
                 else:
-                    Mode=3
+                    Mode=3 # Down Mode
                     Tgoal=int(50-(Rope_S-ThreS_Lift)*0.01)
-                    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',Tgoal)
             
             CurPos=myXYZ.Get_Pos(3)
-            if CurPos>1983000000:
+            if CurPos>1984000000:
                 Tgoal=-70
+                print('sssssssssssssssss')
             if CurPos<1970000000:
                 Tgoal=70
+                print('sssssssssssssssss')
             myXYZ.Set_Torque(3,Tgoal)
-            T_Sent,T_Actual,V_act=myXYZ.Read_Paras(3)
+            myXYZ.Set_Torque(3,Tgoal)
+            myXYZ.Set_Torque(3,Tgoal)
+            # myXYZ.Set_Torque(3,Tgoal)
+            T_Sent,T_Actual,V_actual=myXYZ.Read_Paras(3)
             print('Mode:',Mode,'\t','Hand_S:',Hand_S,'\t','Rope_S:',Rope_S,'\t','T_Goal:',Tgoal,'\t','T_Sent:',T_Sent,'\t','T_Actual:',T_Actual)
-
-            # A_cur=(V_act-V_last)/1000
-            V_last=V_act
 
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")
