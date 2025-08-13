@@ -19,7 +19,7 @@ def main():
         Samples_Rope_L = deque(maxlen=6)  # 自动丢弃旧数据
         Samples_Rope_S = deque(maxlen=3)  # 自动丢弃旧数据
         Samples_SW0_S=deque(maxlen=3)
-        Samples_SW0_L=deque(maxlen=6)
+        Samples_SW0_L=deque(maxlen=5)
         Flag_Weight=0
         Sig_Grasped=150
 
@@ -46,10 +46,10 @@ def main():
                 myXYZ.AxisMode_Jog(3,30,Vgoal)
                 cur_time = time.time()
                 travel_limit=800000
-                while Rope_S<500 and (myXYZ.Get_Pos(3)-CurPos)<travel_limit and (time.time()-cur_time)<1.5:
+                while Rope_S<500 and (myXYZ.Get_Pos(3)-CurPos)<travel_limit and (time.time()-cur_time)<1:
                     Rope_S=Srope.read_angles()
                     print('Waiting Lifting, Rope_S:',Rope_S,'Travel:',(myXYZ.Get_Pos(3)-CurPos)/travel_limit,'Elapsed time:',time.time()-cur_time)
-                    time.sleep(0.02)
+                    time.sleep(0.01)
                 if (myXYZ.Get_Pos(3)-CurPos)<travel_limit and (time.time()-cur_time)<1.5:
                     Samples_BoxW=[]
                     i=0
@@ -65,10 +65,10 @@ def main():
                     print('Measured Failure: Over Travel or Time')
                     Vgoal=0
                     myXYZ.AxisMode_Jog(3,30,Vgoal)
-                    time.sleep(1)
+                    time.sleep(1.5)
                 Vgoal_L=Vgoal
             else:
-                if Ave_SW0_L>0.3 and Flag_Weight==1:
+                if Ave_SW0_L>0.01 and Flag_Weight==1:
                     mode=2 # Loop Mode
                     Rope_B=Weight
                     err=Ave_Rope_S-Rope_B
@@ -98,7 +98,7 @@ def main():
                 Vgoal_L=Vgoal
                 print('Mode:',mode, 'Rope_S:',Rope_S, 'Vgoal',int(Vgoal), 'Diff:',int(diff), 'SW0_S/L:',SW0,Ave_SW0_S,Ave_SW0_L)
 
-            # myXYZ.AxisMode_Jog(3,30,-2500)            
+            myXYZ.AxisMode_Jog(3,30,-3000)            
 
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")

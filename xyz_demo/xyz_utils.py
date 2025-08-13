@@ -34,7 +34,7 @@ class xyz_utils():
         ReV10=self.dll.GA_ZeroPos(2,1)
         ReV11=self.dll.GA_ZeroPos(4,1)
         ReV12=self.dll.GA_ZeroPos(3,1)
-        softlimit=1000*1000*9
+        softlimit=1000*1000*11
         ReV20=self.dll.GA_SetSoftLimit(3,softlimit,-softlimit) # Soft Limit
 
     def SetGearFollow(self,id_slave,id_master):
