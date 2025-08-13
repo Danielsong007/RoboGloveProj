@@ -134,23 +134,29 @@ class xyz_utils():
         V_Actual = c_int32(0)
         self.dll.GA_ECatGetSdoValue(axis_id, 0x606C, 0, byref(V_Actual), byref(nFlag), 4, 0)
         return T_Sent.value,T_Actual.value,V_Actual.value
+    
+    def Read_IOs(self):
+        Value = c_int(0)
+        a=self.dll.GA_GetExtDiBit(0,0,byref(Value))
+        # print(a,Value.value)
+        return Value.value
 
 
-# Torque Demo
-if __name__ == "__main__":
-    myXYZ = xyz_utils()
-    myXYZ.OpenEnableZero_ALL()
-    myXYZ.AxisMode_Torque(3) # Only current mode
-    try:
-        while True:
-            myXYZ.Set_Torque(3,-120)
-            myXYZ.Read_Paras(3)
-            time.sleep(0.01)
-    except KeyboardInterrupt:
-        print("Ctrl-C is pressed!")
-    finally:
-        myXYZ.SafeQuit()
-        sys.exit(0)
+# # Torque Demo
+# if __name__ == "__main__":
+#     myXYZ = xyz_utils()
+#     myXYZ.OpenEnableZero_ALL()
+#     myXYZ.AxisMode_Torque(3) # Only current mode
+#     try:
+#         while True:
+#             myXYZ.Set_Torque(3,-120)
+#             myXYZ.Read_Paras(3)
+#             time.sleep(0.01)
+#     except KeyboardInterrupt:
+#         print("Ctrl-C is pressed!")
+#     finally:
+#         myXYZ.SafeQuit()
+#         sys.exit(0)
 
 # Jog Demo
 if __name__ == "__main__":
@@ -159,9 +165,10 @@ if __name__ == "__main__":
     myXYZ.Safe_Jog(3)
     try:
         while True:
-            myXYZ.AxisMode_Jog(3,30,1000)
-            print(myXYZ.Get_Pos(3))
-            time.sleep(0.01)
+            # myXYZ.AxisMode_Jog(3,30,1000)
+            # print(myXYZ.Get_Pos(3))
+            myXYZ.Read_IOs()
+            time.sleep(0.05)
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")
     finally:
