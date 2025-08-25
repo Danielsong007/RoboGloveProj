@@ -72,6 +72,9 @@ def main():
                     mode=2 # Loop Mode
                     Rope_B=Weight
                     err=Ave_Rope_S-Rope_B
+                    err_min=1
+                    if err>-err_min and err<err_min:
+                        err=0
                     Vgoal_N=-15*err
                 else:
                     mode=3 # Lossen Mode
@@ -96,9 +99,9 @@ def main():
                     Vgoal=Max_Vel
                 myXYZ.AxisMode_Jog(3,30,Vgoal)
                 Vgoal_L=Vgoal
-                print('Mode:',mode, 'Rope_S:',Rope_S, 'Vgoal',int(Vgoal), 'Diff:',int(diff), 'SW0_S/L:',SW0,Ave_SW0_S,Ave_SW0_L)
+                print('Mode:',mode, 'Rope_S:',Rope_S, 'Vgoal',int(Vgoal), 'Diff:',int(diff), 'SW0_S/L:',SW0,round(Ave_SW0_S,2),round(Ave_SW0_L,2))
 
-            myXYZ.AxisMode_Jog(3,30,-3000)            
+            # myXYZ.AxisMode_Jog(3,30,-3000)            
 
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")
