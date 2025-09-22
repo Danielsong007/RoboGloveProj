@@ -28,14 +28,6 @@ class xyz_utils():
         ReV19=self.dll.GA_SetHardLimP(2,0,0,2)
         time.sleep(1)
         print('ALL: Enabled & Zero & Axis 4 follows Axis 2 & Hard Limit')
-    
-    def Safe_Jog(self,axis_id):
-        ReV9=self.dll.GA_ZeroPos(1,1)
-        ReV10=self.dll.GA_ZeroPos(2,1)
-        ReV11=self.dll.GA_ZeroPos(4,1)
-        ReV12=self.dll.GA_ZeroPos(3,1)
-        softlimit=1000*1000*11
-        ReV20=self.dll.GA_SetSoftLimit(3,softlimit,-softlimit) # Soft Limit
 
     def SetGearFollow(self,id_slave,id_master):
         ReV1=self.dll.GA_PrfGear(id_slave,0)
@@ -44,6 +36,13 @@ class xyz_utils():
         ReV4=self.dll.GA_SetGearEvent(id_slave,1,0,0)
         ReV5=self.dll.GA_GearStart(0X0001<<(id_slave-1))
         print('SetGearFollow:', ReV1,ReV2,ReV3,ReV4,ReV5)
+
+    def AxisMode_Trap(self,axis_id,target_pos,target_vel): # AxisMode_Trap(axis_id,600000,300)
+        ReV1=self.dll.GA_PrfTrap(axis_id)
+        ReV2=self.dll.GA_SetTrapPrmSingle(axis_id,c_double(1.0),c_double(1.0),c_double(0.0),0)
+        ReV3=self.dll.GA_SetPos(axis_id,c_long(target_pos)) # Pulse
+        ReV4=self.dll.GA_SetVel(axis_id,c_double(target_vel)) # Pulse/ms
+        ReV5=self.dll.GA_Update(0X0001<<(axis_id-1))
 
     def SafeQuit(self):
         ReV1=self.dll.GA_AxisOff(1)
@@ -56,25 +55,30 @@ class xyz_utils():
         ReV8=self.AxisMode_Jog(4,1,0)
         ReV9=self.dll.GA_Close()
 
+    def Safe_Jog(self):
+        InitialPos=self.Get_Pos(3)
+        # print('Initial:',InitialPos)
+        ReV9=self.dll.GA_ZeroPos(1,1)
+        ReV10=self.dll.GA_ZeroPos(2,1)
+        ReV11=self.dll.GA_ZeroPos(4,1)
+        ReV12=self.dll.GA_ZeroPos(3,1)
+        SoftLimitUp=int(1964000000-InitialPos)
+        SoftLimitDown=int(1953000000-InitialPos)
+        ReV20=self.dll.GA_SetSoftLimit(3,SoftLimitUp,SoftLimitDown) # Soft Limit
+        return(int(InitialPos))
+
     def Get_Pos(self,axis_id):
         dPrfPos=c_double(0.0)
         ReV1=self.dll.GA_GetPrfPos(axis_id,byref(dPrfPos),1,0) # Planned position
         dEncPos=c_double(0.0)
         ReV2=self.dll.GA_GetAxisEncPos(axis_id,byref(dEncPos),1,0) # Encoder position
         return dEncPos.value
-        print('Axis',axis_id,':', 'Planned pos',dPrfPos, ',', 'Encoder pos',dEncPos)
-
-    def AxisMode_Trap(self,axis_id,target_pos,target_vel): # AxisMode_Trap(axis_id,600000,300)
-        ReV1=self.dll.GA_PrfTrap(axis_id)
-        ReV2=self.dll.GA_SetTrapPrmSingle(axis_id,c_double(1.0),c_double(1.0),c_double(0.0),0)
-        ReV3=self.dll.GA_SetPos(axis_id,c_long(target_pos)) # Pulse
-        ReV4=self.dll.GA_SetVel(axis_id,c_double(target_vel)) # Pulse/ms
-        ReV5=self.dll.GA_Update(0X0001<<(axis_id-1))
+        # print('Axis',axis_id,':', 'Planned pos',dPrfPos, ',', 'Encoder pos',dEncPos)
 
     def AxisMode_Jog(self,axis_id,acc,vel): # AxisMode_Jog(3,1,-100)
         ReV1=self.dll.GA_PrfJog(axis_id)
         ReV2=self.dll.GA_SetJogPrmSingle(axis_id,c_double(acc),c_double(acc),c_double(0.0)) # ACC DEC SMOOTH
-        ReV1=self.dll.GA_SetVel(axis_id,c_double(vel))
+        ReV1=self.dll.GA_SetVel(axis_id,c_double(-vel))
         ReV2=self.dll.GA_Update(0X0001<<(axis_id-1)) # 0XFF
     
     def AxisMode_Torque(self,axis_id):
@@ -162,12 +166,15 @@ class xyz_utils():
 if __name__ == "__main__":
     myXYZ = xyz_utils()
     myXYZ.OpenEnableZero_ALL()
-    myXYZ.Safe_Jog(3)
+    myXYZ.Safe_Jog()
     try:
         while True:
-            # myXYZ.AxisMode_Jog(3,30,1000)
+            myXYZ.AxisMode_Jog(1,6,-400)
+            # myXYZ.AxisMode_Jog(2,2,-200) # - to me
+            # myXYZ.AxisMode_Jog(3,30,-2000)
             # print(myXYZ.Get_Pos(3))
-            myXYZ.Read_IOs()
+            # IOvalue=myXYZ.Read_IOs()
+            # print(IOvalue)
             time.sleep(0.05)
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")

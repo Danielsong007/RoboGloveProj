@@ -2,8 +2,8 @@ import serial
 import time
 
 class RuiFenSensor:
-    def __init__(self):
-        self.ser = serial.Serial(port="/dev/ttyUSB0", baudrate=115200, bytesize=8, parity=serial.PARITY_EVEN, stopbits=1, timeout=1)
+    def __init__(self,port_name):
+        self.ser = serial.Serial(port=port_name, baudrate=115200, bytesize=8, parity=serial.PARITY_EVEN, stopbits=1, timeout=1)
 
     def set_mode(self): # 设置传感器模式
         # cmd_disable_auto = bytes([0x01, 0x06, 0x00, 0x13, 0x00, 0x00, 0x78, 0x0F])  # 应答模式; CRC16
@@ -35,7 +35,7 @@ class RuiFenSensor:
 
 # 使用示例
 if __name__ == "__main__":
-    sensor = RuiFenSensor()
+    sensor = RuiFenSensor('/dev/ttyUSB2')
     try:
         # sensor.set_mode()
         while True:

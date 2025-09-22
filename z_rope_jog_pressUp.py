@@ -26,13 +26,6 @@ def main():
             err=Fgoal-Frope
             Vgoal_N=25*err
             Vgoal=Vgoal_L+(Vgoal_N-Vgoal_L)*0.03
-            # Vgoal=25*err
-
-            # diff=10
-            # if err>0:
-            #     Vgoal=Vgoal_L+diff
-            # else:
-            #     Vgoal=Vgoal_L-diff
             
             Vgoal_min=-1000
             Vgoal_max=1000

@@ -12,7 +12,7 @@ def main():
         Srope = DaYangSensor('/dev/ttyUSB0',0)
         myXYZ = xyz_utils()
         myXYZ.OpenEnableZero_ALL()
-        myXYZ.Safe_Jog(3)
+        InitPos=myXYZ.Safe_Jog(3)
 
         Vgoal_L=0
         Vgoal_N=0
@@ -38,26 +38,26 @@ def main():
             Samples_SW0_L.append(SW0)
             Ave_SW0_L=np.mean(Samples_SW0_L)
             
-            if Ave_SW0_S>0.5 and Flag_Weight==0:
+            if Ave_SW0_S>0.5 and Flag_Weight==0 and (myXYZ.Get_Pos(3)+InitPos)<1958000000:
                 print('Measure Mode')
                 mode=1
                 CurPos=myXYZ.Get_Pos(3)
                 Vgoal=2000
                 myXYZ.AxisMode_Jog(3,30,Vgoal)
                 cur_time = time.time()
-                travel_limit=800000
+                travel_limit=1000000
                 while Rope_S<500 and (myXYZ.Get_Pos(3)-CurPos)<travel_limit and (time.time()-cur_time)<1:
                     Rope_S=Srope.read_angles()
                     print('Waiting Lifting, Rope_S:',Rope_S,'Travel:',(myXYZ.Get_Pos(3)-CurPos)/travel_limit,'Elapsed time:',time.time()-cur_time)
                     time.sleep(0.01)
-                if (myXYZ.Get_Pos(3)-CurPos)<travel_limit and (time.time()-cur_time)<1.5:
+                if (myXYZ.Get_Pos(3)-CurPos)<travel_limit and (time.time()-cur_time)<1:
                     Samples_BoxW=[]
                     i=0
-                    while i<40:
+                    while i<50:
                         i=i+1
                         Rope_S=Srope.read_angles()
                         Samples_BoxW.append(Rope_S)
-                        time.sleep(0.02)
+                        time.sleep(0.01)
                     Weight=np.mean(Samples_BoxW)
                     print('Measured Success! Weight:',Weight)
                     Flag_Weight=1
@@ -70,21 +70,19 @@ def main():
             else:
                 if Ave_SW0_L>0.01 and Flag_Weight==1:
                     mode=2 # Loop Mode
-                    Rope_B=Weight
-                    err=Ave_Rope_S-Rope_B
-                    err_min=1
+                    err=Weight-Ave_Rope_S
+                    err_min=100
                     if err>-err_min and err<err_min:
                         err=0
-                    Vgoal_N=-15*err
+                    Vgoal_N=15*err
                 else:
                     mode=3 # Lossen Mode
-                    Rope_B=30
-                    err=Ave_Rope_S-Rope_B
-                    Vgoal_N=-40*err
+                    err=40-Ave_Rope_S
+                    Vgoal_N=40*err
                     Flag_Weight=0
                 
-                diff=(Vgoal_N-Vgoal_L)*0.3
-                Max_diff=180
+                diff=(Vgoal_N-Vgoal_L)*0.03
+                Max_diff=150
                 if diff>Max_diff:
                     diff=Max_diff
                 if diff<-Max_diff:
@@ -92,16 +90,14 @@ def main():
                 Vgoal=Vgoal_L+diff
 
                 Max_Vel=4000
-                Min_Vel=-2500
+                Min_Vel=-4000
                 if Vgoal<Min_Vel:
                     Vgoal=Min_Vel
                 if Vgoal>Max_Vel:
                     Vgoal=Max_Vel
                 myXYZ.AxisMode_Jog(3,30,Vgoal)
                 Vgoal_L=Vgoal
-                print('Mode:',mode, 'Rope_S:',Rope_S, 'Vgoal',int(Vgoal), 'Diff:',int(diff), 'SW0_S/L:',SW0,round(Ave_SW0_S,2),round(Ave_SW0_L,2))
-
-            # myXYZ.AxisMode_Jog(3,30,-3000)            
+                print('Mode:',mode, 'Rope_S:',Rope_S, 'Vgoal',int(Vgoal), 'Err',round(err,2), 'Diff:',int(diff), 'SW0_S/L:',SW0,round(Ave_SW0_S,3),round(Ave_SW0_L,3))
 
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")
