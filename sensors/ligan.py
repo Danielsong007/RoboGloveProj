@@ -8,6 +8,9 @@ class LiganSensor:
             parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1)
         self.Pdata=[0] * 36
     
+    def close(self):
+        self.ser.close()
+    
     def print_data(self):
         for row in range(6):
             start_idx = row * 6
@@ -47,4 +50,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\n用户中断")
     finally:
-        liganS.ser.close()
+        liganS.close()
