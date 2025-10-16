@@ -46,7 +46,7 @@ if __name__ == "__main__":
         while True:
             data=liganS.read_data()
             print(data[1])
-            liganS.print_data()
+            # liganS.print_data()
     except KeyboardInterrupt:
         print("\n用户中断")
     finally:
