@@ -12,14 +12,15 @@ import socket
 Rope_S = 0
 Touch_S = 0
 
-def read_rope_sensor(sensor):
+def read_rope_sensor():
     global Rope_S
+    Srope = DaYangSensor('/dev/ttyUSB0',0)
     try:
         while True:
-            Rope_S = sensor.read_angles()
-            time.sleep(0.005)
+            Rope_S = Srope.read_angles()
+            time.sleep(0.001)
     except KeyboardInterrupt:
-        sensor.close()
+        Srope.close()
         print("Ctrl-C is pressed!")
 
 def touch_sensor_server(host='0.0.0.0', port=65432):
@@ -36,11 +37,9 @@ def touch_sensor_server(host='0.0.0.0', port=65432):
                 if not data:
                     break
                 msg = data.decode()
-                Touch_S = int(msg.split()[-1])  # 分割后取最后一个元素
-                # print('Received',Touch_S)
+                Touch_S = int(msg.split()[-1])
 
-Srope = DaYangSensor('/dev/ttyUSB0',0)
-threading.Thread(target=read_rope_sensor, args=(Srope,), daemon=True).start()
+threading.Thread(target=read_rope_sensor, args=(), daemon=True).start()
 threading.Thread(target=touch_sensor_server, args=(), daemon=True).start()
 
 def main():
@@ -50,11 +49,11 @@ def main():
         myXYZ.OpenEnableZero_ALL()
         InitPos=myXYZ.Safe_Jog()
         while Touch_S==0:
-            time.sleep(0.05)
+            time.sleep(0.1)
             print('Waiting Touch Data!!')
         
-        Vgoal_L=0
         Vgoal_N=0
+        Vgoal=0
         Weight=0
         Touch_valve=2000
         Srope_buffer = deque(maxlen=3)  # 自动丢弃旧数据
@@ -68,31 +67,22 @@ def main():
             Stouch_buffer.append(Touch_S)
             Ave_Touch_S=np.mean(Stouch_buffer)
 
-            # if Ave_Touch_S<Touch_valve:
-            #     mode=3 # Lossen Mode
-            #     err=50-Ave_Rope_S
-            #     Vgoal_N=40*err
-            # else:
-            #     # time.sleep(0.5)
-            #     mode=2 # Load Mode
-            #     Vgoal_N=Ave_Touch_S*0.3-Ave_Rope_S*1.5
-            
-            mode=2 # Load Mode
-            Vgoal_N=Ave_Touch_S*0.3-Ave_Rope_S*5
+            if Ave_Touch_S<Touch_valve:
+                mode=3 # Lossen Mode
+                err=50-Ave_Rope_S
+                Vgoal_N=40*err
+            else:
+                mode=2 # Load Mode
+                Vgoal_N=Ave_Touch_S*0.3-Ave_Rope_S*3
 
-            diff=(Vgoal_N-Vgoal_L)*10
-            Max_diff=20
-            diff = np.clip(diff, -Max_diff, Max_diff)
+            diff=(Vgoal_N-Vgoal)*0.01
             Max_Vel=4000
-            Vgoal = np.clip(Vgoal_L+diff, -Max_Vel, Max_Vel)
-            # print(Vgoal_L,diff,Vgoal)
+            Vgoal = np.clip(Vgoal+diff, -Max_Vel, Max_Vel)
             myXYZ.AxisMode_Jog(3,30,int(Vgoal))
-            Vgoal_L=Vgoal
 
-            Pnum=Pnum+1
-            if Pnum==29:
-                print('Mode:',mode, 'Ave_Rope_S:',int(Ave_Rope_S), 'Ave_Touch_S:',int(Ave_Touch_S), 'Vgoal_N',int(Vgoal_N), 'Vgoal',int(Vgoal), 'Diff:',int(diff))
-                Pnum=0
+            Pnum += 1
+            if Pnum % 29 == 0:
+                print('Mode:',mode, 'Ave_Rope_S:',int(Ave_Rope_S), 'Ave_Touch_S:',int(Ave_Touch_S), 'Vgoal_N',int(Vgoal_N), 'Vgoal',int(Vgoal), 'diff:',int(diff), 'Weight', int(Weight))
 
             # myXYZ.AxisMode_Jog(3,30,-2000)
 
