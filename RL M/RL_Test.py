@@ -4,9 +4,6 @@ import torch.optim as optim
 import numpy as np
 from collections import deque
 import gym
-from gym import spaces
-import threading
-import time
 
 class Config:
     MAX_FORCE = 100.0  # 最大安全拉力(N)
@@ -32,8 +29,7 @@ class RopeLiftEnv(gym.Env):
         self.action_history = deque([0.0] * Config.HISTORY_WINDOW, maxlen=Config.HISTORY_WINDOW)
 
     def step(self, action):
-        self.pressure += np.random.normal(0, 0.02)
-        self.pressure = np.clip(self.pressure, 0, 2)
+        self.pressure = np.random.normal(0, 0.02)
         self.velocity = np.random.normal(-1, 1)
         self.position = np.random.normal(-1, 1)
         self.current_force = np.random.normal(1, 3)
@@ -43,7 +39,7 @@ class RopeLiftEnv(gym.Env):
         self.pressure_history.append(self.pressure)
         self.action_history.append(action[0])
         reward = -0.1 * abs(action[0] - self.action_history[-1])
-        done = self.current_force > Config.MAX_FORCE
+        done = 0
         return self._get_state(), reward, done, {}
 
     def _get_state(self):
@@ -109,7 +105,7 @@ def train_ppo():
             log_probs.append(log_prob)
             state = next_state
             step_count += 1
-            if done or step_count >= 200:  # 防止无限循环
+            if step_count >= 100:
                 break
         states_tensor = torch.FloatTensor(np.array(states, dtype=np.float32))
         actions_tensor = torch.cat(actions).view(-1)  # 确保是1D张量
