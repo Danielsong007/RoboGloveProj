@@ -1,33 +1,8 @@
-import sys
-import time
-from xyz_demo.xyz_utils import xyz_utils
-from sensors.dayang import DaYangSensor
-from sensors.ligan import LiganSensor
 import numpy as np
-from collections import deque
-import threading
-import socket
 
+arr = np.array([0.80872643], dtype=np.float32)
 
-def main():
-    try:
-        myXYZ = xyz_utils()
-        print('Start Enable')
-        myXYZ.OpenEnableZero_ALL()
-        InitPos=myXYZ.Safe_Jog()
-
-        while True:
-            time.sleep(0.001)
-
-    except KeyboardInterrupt:
-        print("Ctrl-C is pressed!")
-        
-    finally:
-        myXYZ.SafeQuit()
-        sys.exit(0)
-
-if __name__ == "__main__":
-    main()
-
-
-
+# 提取第一个元素
+value = arr[0]
+print(value)  # 0.80872643
+print(type(value))  # <class 'numpy.float32'>

@@ -15,46 +15,25 @@ class Config:
 class RopeLiftEnv(gym.Env):
     def __init__(self):
         super(RopeLiftEnv, self).__init__()
-        self.state_dim = Config.SINGLE_STATE_NUM + 3 * Config.HISTORY_WINDOW  # 基础6维 + (力/压力/动作各HISTORY_WINDOW步)
-        self.current_force = 0.0
+        self.cur_force = 0.0
         self.pressure = 0.0
         self.position = 0.0
-        self.velocity = 0.0
-        self.force_integral = 0.0
-        self.pressure_integral = 0.0
-        self.force_history = deque([self.current_force] * Config.HISTORY_WINDOW, maxlen=Config.HISTORY_WINDOW)
-        self.pressure_history = deque([self.pressure] * Config.HISTORY_WINDOW, maxlen=Config.HISTORY_WINDOW)
-        self.action_history = deque([0.0] * Config.HISTORY_WINDOW, maxlen=Config.HISTORY_WINDOW)
+        self.his_force = deque([self.cur_force] * Config.HISTORY_WINDOW, maxlen=Config.HISTORY_WINDOW)
+        self.his_press = deque([self.pressure] * Config.HISTORY_WINDOW, maxlen=Config.HISTORY_WINDOW)
+        self.his_pos = deque([self.position] * Config.HISTORY_WINDOW, maxlen=Config.HISTORY_WINDOW)
+        self.his_action = deque([0.0] * Config.HISTORY_WINDOW, maxlen=Config.HISTORY_WINDOW)
+        self.state = np.concatenate([np.array(self.his_force, dtype=np.float32), np.array(self.his_press, dtype=np.float32), np.array(self.his_pos, dtype=np.float32), np.array(self.his_action, dtype=np.float32)])
+        self.state_dim = len(self.state)
 
     def step(self, action):
-        self.current_force = np.random.normal(1, 3)
-        self.pressure = np.random.normal(0, 0.02)
-        self.position = np.random.normal(-1, 1)
-        self.velocity = np.random.normal(-1, 1)
-        self.force_integral = 0
-        self.pressure_integral = 0
-        self.force_history.append(self.current_force)
-        self.pressure_history.append(self.pressure)
-        self.action_history.append(action[0])
-        reward = -0.1 * abs(action[0] - self.action_history[-1])
+        self.his_force.append(self.cur_force)
+        self.his_press.append(self.pressure)
+        self.his_pos.append(self.position)
+        self.his_action.append(action[0][0])
+        self.state = np.concatenate([np.array(self.his_force, dtype=np.float32), np.array(self.his_press, dtype=np.float32), np.array(self.his_pos, dtype=np.float32), np.array(self.his_action, dtype=np.float32)])
+        reward = -0.1 * abs(action[0] - self.his_action[-1])
         done = 0
-        return self._get_state(), reward, done, {}
-
-    def _get_state(self):
-        state = np.zeros(Config.SINGLE_STATE_NUM + 3*Config.HISTORY_WINDOW, dtype=np.float32)
-        state[0] = self.current_force
-        state[1] = self.pressure
-        state[2] = self.position
-        state[3] = self.velocity
-        state[4] = self.force_integral
-        state[5] = self.pressure_integral
-        for i, f in enumerate(self.force_history):
-            state[Config.SINGLE_STATE_NUM+i] = f
-        for i, p in enumerate(self.pressure_history):
-            state[Config.SINGLE_STATE_NUM+Config.HISTORY_WINDOW+i] = p
-        for i, a in enumerate(self.action_history):
-            state[Config.SINGLE_STATE_NUM+2*Config.HISTORY_WINDOW+i] = a
-        return state
+        return self.state, reward, done
 
 class ActorCritic(nn.Module):
     def __init__(self, state_dim):
@@ -111,6 +90,7 @@ class PPOTrainer:
                     policy_loss = -torch.min(surr1, surr2).mean()
                     value_loss = nn.MSELoss()(values.squeeze(-1), returns)
                     loss = policy_loss + 0.5 * value_loss - self.entropy_coef * entropy
+                    # print('total loss: ', loss.item(), 'policy_loss: ', policy_loss.item(), 'value_loss: ', value_loss.item(), 'entropy: ', entropy.item())
                     self.optimizer.zero_grad()
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(self.policy.parameters(), 0.5)
@@ -125,8 +105,8 @@ if __name__ == "__main__":
     policy = ActorCritic(env.state_dim)
     trainer = PPOTrainer(policy)
     try:
-        step_count = 0
-        state = env._get_state()
+        count = 0
+        state = env.state
         states, actions, rewards, log_probs = [], [], [], []
         current_policy = trainer.latest_policy
         while True:
@@ -135,17 +115,17 @@ if __name__ == "__main__":
                 dist, value = current_policy(state_tensor)
                 action = dist.sample()
                 log_prob = dist.log_prob(action)
-            if env.current_force > 8 and action > 0:
+            if env.cur_force > 8 and action > 0:
                 action = torch.clamp(action, -1, 0)
-            next_state, reward, done, _ = env.step(action.numpy())
+            next_state, reward, done = env.step(action.numpy())
             states.append(state)
             actions.append(action)
             rewards.append(reward)
             log_probs.append(log_prob)
             state = next_state
-            step_count += 1
-            if step_count % 100 == 0:
-                print(step_count/100)
+            count += 1
+            if count % 100 == 0:
+                print(count/100)
                 trainer.data_queue.put((states, actions, rewards, log_probs), block=False) # 非阻塞方式添加数据，如果队列满则跳过
                 states, actions, rewards, log_probs = [], [], [], []
                 current_policy = trainer.latest_policy
