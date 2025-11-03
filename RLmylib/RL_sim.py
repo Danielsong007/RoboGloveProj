@@ -135,6 +135,6 @@ if __name__ == "__main__":
     finally:
         trainer.stop_event.set()
         trainer.train_thread.join()
-        torch.save(trainer.latest_policy.state_dict(), "/home/mo/RoboGloveWS/RoboGloveProj/RL M/ppo_rope_lift_final.pth")
+        torch.save(trainer.latest_policy.state_dict(), "/home/mo/RoboGloveWS/RoboGloveProj/RLmylib/ppo_rope_lift_final.pth")
 
 
