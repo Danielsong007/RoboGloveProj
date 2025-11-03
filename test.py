@@ -1,4 +1,6 @@
-import numpy as np
+from RLmylib.RL_lib import RealEnv, ActorCritic, PPOTrainer
 
-a=6
-if a>1: print(a)
+env = RealEnv(buffer_weight_Srope,buffer_weight_Stouch,buffer_rising_CurPos)
+policy = ActorCritic(env.state_dim)
+trainer = PPOTrainer(policy)
+

@@ -8,20 +8,18 @@ import threading
 import queue
 import time
 
-class Config:
-    HISTORY_WINDOW = 5  # 历史数据窗口大小
-    SINGLE_STATE_NUM = 6
 
 class RopeLiftEnv(gym.Env):
     def __init__(self):
         super(RopeLiftEnv, self).__init__()
+        HISTORY_WINDOW = 5  # 历史数据窗口大小
         self.cur_force = 0.0
         self.pressure = 0.0
         self.position = 0.0
-        self.his_force = deque([self.cur_force] * Config.HISTORY_WINDOW, maxlen=Config.HISTORY_WINDOW)
-        self.his_press = deque([self.pressure] * Config.HISTORY_WINDOW, maxlen=Config.HISTORY_WINDOW)
-        self.his_pos = deque([self.position] * Config.HISTORY_WINDOW, maxlen=Config.HISTORY_WINDOW)
-        self.his_action = deque([0.0] * Config.HISTORY_WINDOW, maxlen=Config.HISTORY_WINDOW)
+        self.his_force = deque([self.cur_force] * HISTORY_WINDOW, maxlen=HISTORY_WINDOW)
+        self.his_press = deque([self.pressure] * HISTORY_WINDOW, maxlen=HISTORY_WINDOW)
+        self.his_pos = deque([self.position] * HISTORY_WINDOW, maxlen=HISTORY_WINDOW)
+        self.his_action = deque([0.0] * HISTORY_WINDOW, maxlen=HISTORY_WINDOW)
         self.state = np.concatenate([np.array(self.his_force, dtype=np.float32), np.array(self.his_press, dtype=np.float32), np.array(self.his_pos, dtype=np.float32), np.array(self.his_action, dtype=np.float32)])
         self.state_dim = len(self.state)
 
@@ -32,6 +30,24 @@ class RopeLiftEnv(gym.Env):
         self.his_action.append(action[0][0])
         self.state = np.concatenate([np.array(self.his_force, dtype=np.float32), np.array(self.his_press, dtype=np.float32), np.array(self.his_pos, dtype=np.float32), np.array(self.his_action, dtype=np.float32)])
         reward = -0.1 * abs(action[0] - self.his_action[-1])
+        done = 0
+        return self.state, reward, done
+
+class RealEnv(gym.Env):
+    def __init__(self, buffer_weight_Srope,buffer_weight_Stouch,buffer_rising_CurPos):
+        super(RealEnv, self).__init__()
+        self.get_state(buffer_weight_Srope,buffer_weight_Stouch,buffer_rising_CurPos)
+    
+    def get_state(self, buffer_weight_Srope,buffer_weight_Stouch,buffer_rising_CurPos):
+        self.his_force = buffer_weight_Srope
+        self.his_press = buffer_weight_Stouch
+        self.his_pos = buffer_rising_CurPos
+        self.state = np.concatenate([np.array(self.his_force, dtype=np.float32), np.array(self.his_press, dtype=np.float32), np.array(self.his_pos, dtype=np.float32)])
+        self.state_dim = len(self.state)
+
+    def step(self, buffer_weight_Srope,buffer_weight_Stouch,buffer_rising_CurPos):
+        self.get_state(buffer_weight_Srope,buffer_weight_Stouch,buffer_rising_CurPos)
+        reward = -(0.1*np.mean(buffer_weight_Srope) + 0.1*np.mean(buffer_weight_Stouch))
         done = 0
         return self.state, reward, done
 
