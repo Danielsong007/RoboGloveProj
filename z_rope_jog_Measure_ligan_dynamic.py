@@ -13,9 +13,9 @@ Touch_S = 0
 cur_pos_abs = 0
 
 buffer_dyn_Srope = deque([0.0]*3, maxlen=3)
-buffer_weight_Srope = deque([0.0]*50, maxlen=50)
+buffer_weight_Srope = deque([0.0]*30, maxlen=50)
 buffer_dyn_Stouch = deque([0.0]*3, maxlen=3)
-buffer_weight_Stouch = deque([0.0]*50, maxlen=50)
+buffer_weight_Stouch = deque([0.0]*30, maxlen=50)
 buffer_rising_CurPos = deque([0]*5, maxlen=5)
 rising_slope = 0
 
@@ -81,9 +81,8 @@ def main():
         Vgoal=0
         Vgoal_N=0
         Weight=0
-        Touch_valve=200
+        Touch_valve=700
         Pnum=0
-
         while True:
             time.sleep(0.001)
             if np.mean(buffer_dyn_Stouch)>Touch_valve and Weight==0:
@@ -96,14 +95,15 @@ def main():
                     myXYZ.AxisMode_Jog(3,30,Vgoal)
                     print('Waiting Lifting, Rope_S:',Rope_S, 'Elapsed time:',time.time()-cur_time)
                     time.sleep(0.01)
-                time.sleep(0.1)
+                time.sleep(0.5)
                 if Rope_S>500:
-                    Weight=np.mean(buffer_weight_Srope)+0.2*np.mean(buffer_weight_Stouch)
+                    # Weight = 3*np.mean(buffer_weight_Stouch) # put touch senser on top suface, can be a baseline
+                    Weight = np.mean(buffer_weight_Srope) + 0.9*(np.mean(buffer_weight_Stouch)-650)
                     print('Measured Success! Weight:', Weight)
                 else:
                     Vgoal=0
                     myXYZ.AxisMode_Jog(3,30,Vgoal)
-                    time.sleep(1)
+                    time.sleep(0.5)
                     print('Measured Failure: Over Time!')
             elif np.mean(buffer_dyn_Stouch)<Touch_valve:
                 mode=3 # Lossen Mode
@@ -112,7 +112,8 @@ def main():
                 Vgoal_N=40*err
             else:
                 mode=2 # Load Mode
-                if rising_slope > 2: Weight=np.mean(buffer_weight_Srope)+0.2*np.mean(buffer_weight_Stouch) # Update weight only when rising
+                if rising_slope > 2: # Update weight only when rising
+                    Weight = 1.5*np.mean(buffer_weight_Srope) + 0.9*(np.mean(buffer_weight_Stouch)-650)
                 err=Weight-np.mean(buffer_dyn_Srope)
                 if abs(err)<150:
                     err=0
@@ -128,13 +129,14 @@ def main():
             Pnum += 1
             if Pnum % 29 == 0:
                 print('Mode:',mode,
-                      'Ave3_Srope:',int(np.mean(buffer_dyn_Srope)),
-                      'Ave3_Stouch:',int(np.mean(buffer_dyn_Stouch)),
-                      'Vgoal_N',int(Vgoal_N),
-                      'Vgoal',int(Vgoal),
-                      'diff:',int(diff),
-                      'Weight', int(Weight),
-                      'slope: ', rising_slope)
+                      'ave_dyn_Srope:',int(np.mean(buffer_dyn_Srope)),
+                      'ave_dyn_Stouch:',int(np.mean(buffer_dyn_Stouch)),
+                    #   'Vgoal_N:',int(Vgoal_N),
+                    #   'Vgoal:',int(Vgoal),
+                    #   'diff:',int(diff),
+                      'Weight:',int(Weight),
+                      'slope:', int(rising_slope),
+                      )
             # myXYZ.AxisMode_Jog(3,30,-2000)
 
     except KeyboardInterrupt:
