@@ -81,7 +81,7 @@ def main():
         Vgoal=0
         Vgoal_N=0
         Weight=0
-        Touch_valve=700
+        Touch_valve=70
         Pnum=0
         while True:
             time.sleep(0.001)
@@ -93,12 +93,17 @@ def main():
                     # Vgoal=2000+0.005*Touch_S
                     Vgoal=2000
                     myXYZ.AxisMode_Jog(3,30,Vgoal)
-                    print('Waiting Lifting, Rope_S:',Rope_S, 'Elapsed time:',time.time()-cur_time)
+                    print('Waiting Lifting',
+                          'Rope_S:', Rope_S,
+                          'Elapsed time:', int(100*(time.time()-cur_time)),
+                          'ave_dyn_Srope:', int(np.mean(buffer_dyn_Srope)),
+                          'ave_dyn_Stouch:', int(np.mean(buffer_dyn_Stouch)),
+                          )
                     time.sleep(0.01)
                 time.sleep(0.5)
                 if Rope_S>500:
                     # Weight = 3*np.mean(buffer_weight_Stouch) # put touch senser on top suface, can be a baseline
-                    Weight = np.mean(buffer_weight_Srope) + 0.9*(np.mean(buffer_weight_Stouch)-650)
+                    Weight = 1.5*np.mean(buffer_weight_Srope) + 1*np.mean(buffer_weight_Stouch)
                     print('Measured Success! Weight:', Weight)
                 else:
                     Vgoal=0
@@ -112,8 +117,8 @@ def main():
                 Vgoal_N=40*err
             else:
                 mode=2 # Load Mode
-                if rising_slope > 2: # Update weight only when rising
-                    Weight = 1.5*np.mean(buffer_weight_Srope) + 0.9*(np.mean(buffer_weight_Stouch)-650)
+                # if rising_slope > 2: # Update weight only when rising
+                #     Weight = np.mean(buffer_weight_Srope) + 0.6*np.mean(buffer_weight_Stouch)
                 err=Weight-np.mean(buffer_dyn_Srope)
                 if abs(err)<150:
                     err=0

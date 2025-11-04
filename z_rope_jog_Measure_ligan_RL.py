@@ -18,21 +18,37 @@ cur_pos_abs = 0
 Weight = 0
 
 buffer_dyn_Srope = deque([0.0]*3, maxlen=3)
-buffer_weight_Srope = deque([0.0]*30, maxlen=50)
+buffer_weight_Srope = deque([0.0]*30, maxlen=30)
 buffer_dyn_Stouch = deque([0.0]*3, maxlen=3)
-buffer_weight_Stouch = deque([0.0]*30, maxlen=50)
+buffer_weight_Stouch = deque([0.0]*30, maxlen=30)
 buffer_rising_CurPos = deque([0]*5, maxlen=5)
 rising_slope = 0
+buffer_weight_CurPos = deque([0]*5, maxlen=10)
+buffer_weight_CurVel = deque([0]*5, maxlen=10)
+buffer_weight_CurAcc = deque([0]*5, maxlen=10)
+
 
 def read_cur_pos(myXYZ, InitPos):
     global cur_pos_abs
     global buffer_rising_CurPos
     global rising_slope
+    global buffer_weight_CurPos
+    global buffer_weight_CurVel
+    global buffer_weight_CurAcc
+    last_pos = 0
+    last_vel = 0
     while True:
         cur_pos_abs = myXYZ.Get_Pos(3)+InitPos
         buffer_rising_CurPos.append(cur_pos_abs)
         x = np.arange(len(buffer_rising_CurPos))*1000
         rising_slope, _ = np.polyfit(x, -np.array(buffer_rising_CurPos), 1)
+        buffer_weight_CurPos.append(cur_pos_abs)
+        Vel = cur_pos_abs-last_pos
+        buffer_weight_CurVel.append(Vel)
+        Acc = Vel-last_vel
+        buffer_weight_CurAcc.append(Acc)
+        last_pos = cur_pos_abs
+        last_vel = Vel
         time.sleep(0.001)
 
 def read_rope_sensor():
@@ -127,9 +143,13 @@ def main():
                 Vgoal = VelCont(Vgoal_N,Vgoal,myXYZ)
             else:
                 mode=2 # Load Mode
-                env = RealEnv(buffer_weight_Srope,buffer_weight_Stouch,buffer_rising_CurPos)
+                env = RealEnv(buffer_weight_Srope,buffer_weight_Stouch,buffer_weight_CurPos,buffer_weight_CurVel,buffer_weight_CurAcc)
                 policy = ActorCritic(env.state_dim)
-                policy.load_state_dict(torch.load(model_path, weights_only=True))
+                try:
+                    policy.load_state_dict(torch.load(model_path, weights_only=True))
+                    print(f"成功加载模型: {model_path}")
+                except FileNotFoundError:
+                    print(f"模型文件不存在: {model_path}，跳过加载")
                 trainer = PPOTrainer(policy)
                 try:
                     count = 0
@@ -137,40 +157,40 @@ def main():
                     states, actions, rewards, log_probs = [], [], [], []
                     current_policy = trainer.latest_policy
                     while np.mean(buffer_dyn_Stouch)>Touch_valve:
-                        if rising_slope > 2: # Update weight only when rising
-                            state_tensor = torch.FloatTensor(state).unsqueeze(0)
-                            with torch.no_grad():
-                                dist, value = current_policy(state_tensor)
-                                action = dist.sample()
-                                log_prob = dist.log_prob(action)
+                        # if rising_slope > 2: # Update weight only when rising
+                        state_tensor = torch.FloatTensor(state).unsqueeze(0)
+                        with torch.no_grad():
+                            dist, value = current_policy(state_tensor)
+                            action = dist.sample()
+                            log_prob = dist.log_prob(action)
 
-                            Weight = abs(action)*3000
-                            Weight = np.clip(Weight, 0, 3000)
-                            err=Weight-np.mean(buffer_dyn_Srope)
-                            if abs(err)<150:
-                                err=0
-                            Vgoal_N=15*err
-                            Vgoal = VelCont(Vgoal_N,Vgoal,myXYZ)
-                            time.sleep(0.05) # for acting
+                        Weight = abs(action)*2500
+                        Weight = np.clip(Weight, 0, 2000)
+                        err=Weight-np.mean(buffer_dyn_Srope)
+                        if abs(err)<150:
+                            err=0
+                        Vgoal_N=15*err
+                        Vgoal = VelCont(Vgoal_N,Vgoal,myXYZ)
+                        time.sleep(0.05) # for acting
 
-                            next_state, reward, done = env.step(buffer_weight_Srope,buffer_weight_Stouch,buffer_rising_CurPos)
-                            states.append(state)
-                            actions.append(action)
-                            rewards.append(reward)
-                            log_probs.append(log_prob)
-                            state = next_state
-                            count += 1
-                            if count % 10 == 0:
-                                print('Upload data', count/10)
-                                trainer.data_queue.put((states, actions, rewards, log_probs), block=False) # 非阻塞方式添加数据，如果队列满则跳过
-                                states, actions, rewards, log_probs = [], [], [], []
-                                current_policy = trainer.latest_policy
-                        else:
-                            err=Weight-np.mean(buffer_dyn_Srope)
-                            if abs(err)<150:
-                                err=0
-                            Vgoal_N=15*err
-                            Vgoal = VelCont(Vgoal_N,Vgoal,myXYZ)
+                        next_state, reward, done = env.step(buffer_weight_Srope,buffer_weight_Stouch,buffer_weight_CurPos,buffer_weight_CurVel,buffer_weight_CurAcc)
+                        states.append(state)
+                        actions.append(action)
+                        rewards.append(reward)
+                        log_probs.append(log_prob)
+                        state = next_state
+                        count += 1
+                        if count % 10 == 0:
+                            print('Upload data', count/10)
+                            trainer.data_queue.put((states, actions, rewards, log_probs), block=False) # 非阻塞方式添加数据，如果队列满则跳过
+                            states, actions, rewards, log_probs = [], [], [], []
+                            current_policy = trainer.latest_policy
+                        # else:
+                        #     err=Weight-np.mean(buffer_dyn_Srope)
+                        #     if abs(err)<150:
+                        #         err=0
+                        #     Vgoal_N=15*err
+                        #     Vgoal = VelCont(Vgoal_N,Vgoal,myXYZ)
                         
                         print('Mode:',mode,
                             'ave_dyn_Srope:',int(np.mean(buffer_dyn_Srope)),
@@ -187,7 +207,7 @@ def main():
                     torch.save(trainer.latest_policy.state_dict(), model_path)
 
             Pnum += 1
-            if Pnum % 29 == 0:
+            if Pnum % 50 == 0:
                 print('Mode:',mode,
                       'ave_dyn_Srope:',int(np.mean(buffer_dyn_Srope)),
                       'ave_dyn_Stouch:',int(np.mean(buffer_dyn_Stouch)),
