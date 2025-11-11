@@ -7,9 +7,8 @@ import numpy as np
 from collections import deque
 import threading
 import socket
-from RLmylib.RL_lib import RealEnv, ActorCritic, PPOTrainer
+from RLmylib.PPO_lib import RealEnv, ActorCritic, PPOTrainer
 import torch
-import gym
 
 
 Rope_S = 0

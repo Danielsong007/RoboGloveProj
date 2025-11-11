@@ -1,4 +1,4 @@
-import gym
+import gymnasium as gym
 import numpy as np
 import random
 from collections import deque
@@ -28,18 +28,9 @@ class ReplayBuffer:
         self.buffer.append((state, action, reward, next_state, done))
     
     def sample(self, batch_size):
-        if len(self.buffer) < batch_size:
-            return None
-            
         batch = random.sample(self.buffer, batch_size)
-        state, action, reward, next_state, done = zip(*batch)
-        return (
-            np.array(state, dtype=np.float32),
-            np.array(action, dtype=np.int64),
-            np.array(reward, dtype=np.float32),
-            np.array(next_state, dtype=np.float32),
-            np.array(done, dtype=np.bool_)
-        )
+        state, action, reward, next_state, done = map(np.stack, zip(*batch))
+        return state, action, reward, next_state, done
     
     def __len__(self):
         return len(self.buffer)
@@ -61,7 +52,6 @@ class DQNAgent:
         
         # 设备配置
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(f"使用设备: {self.device}")
         
         # 网络初始化
         self.q_network = DQN(state_size, action_size).to(self.device)
@@ -85,9 +75,8 @@ class DQNAgent:
         if np.random.random() <= self.epsilon:
             return random.randrange(self.action_size)
         
-        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
-        with torch.no_grad():
-            q_values = self.q_network(state_tensor)
+        state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        q_values = self.q_network(state)
         return np.argmax(q_values.cpu().data.numpy())
     
     def remember(self, state, action, reward, next_state, done):
@@ -96,11 +85,11 @@ class DQNAgent:
     
     def replay(self):
         """从记忆回放中学习"""
-        batch = self.memory.sample(self.batch_size)
-        if batch is None:
+        if len(self.memory) < self.batch_size:
             return
         
-        states, actions, rewards, next_states, dones = batch
+        # 从记忆回放中采样
+        states, actions, rewards, next_states, dones = self.memory.sample(self.batch_size)
         
         # 转换为PyTorch张量
         states = torch.FloatTensor(states).to(self.device)
@@ -110,7 +99,7 @@ class DQNAgent:
         dones = torch.BoolTensor(dones).to(self.device)
         
         # 计算当前Q值
-        current_q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze()
+        current_q_values = self.q_network(states).gather(1, actions.unsqueeze(1))
         
         # 计算目标Q值
         with torch.no_grad():
@@ -118,14 +107,11 @@ class DQNAgent:
             target_q_values = rewards + (self.gamma * next_q_values * ~dones)
         
         # 计算损失
-        loss = F.mse_loss(current_q_values, target_q_values)
+        loss = F.mse_loss(current_q_values.squeeze(), target_q_values)
         
         # 反向传播
         self.optimizer.zero_grad()
         loss.backward()
-        
-        # 梯度裁剪，防止梯度爆炸
-        torch.nn.utils.clip_grad_norm_(self.q_network.parameters(), 1.0)
         self.optimizer.step()
         
         # 衰减探索率
@@ -140,42 +126,32 @@ class DQNAgent:
             'optimizer_state_dict': self.optimizer.state_dict(),
             'epsilon': self.epsilon
         }, filename)
-        print(f"模型已保存到: {filename}")
     
     def load(self, filename):
         """加载模型"""
-        checkpoint = torch.load(filename, map_location=self.device)
+        checkpoint = torch.load(filename)
         self.q_network.load_state_dict(checkpoint['q_network_state_dict'])
         self.target_network.load_state_dict(checkpoint['target_network_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.epsilon = checkpoint['epsilon']
-        print(f"模型已从 {filename} 加载")
 
 def train_dqn():
     """训练DQN代理"""
     # 初始化环境
-    env = gym.make('CartPole-v1')
+    env = gym.make("CartPole-v1", render_mode="rgb_array")
     state_size = env.observation_space.shape[0]
     action_size = env.action_space.n
-    
-    print(f"状态空间大小: {state_size}, 动作空间大小: {action_size}")
     
     # 创建DQN代理
     agent = DQNAgent(state_size, action_size)
     
     # 训练参数
-    episodes = 500
+    episodes = 250
     scores = []  # 存储每个episode的得分
     average_scores = []  # 存储平均得分
     
     for e in range(episodes):
-        # 修复：新版gym返回单个值，需要检查返回值数量
-        reset_result = env.reset()
-        if isinstance(reset_result, tuple):
-            state = reset_result[0]  # 新版gym返回 (state, info)
-        else:
-            state = reset_result  # 旧版gym直接返回state
-        
+        state, _ = env.reset()
         total_reward = 0
         steps = 0
         
@@ -184,17 +160,11 @@ def train_dqn():
             action = agent.act(state)
             
             # 执行动作
-            step_result = env.step(action)
-            if len(step_result) == 4:
-                # 旧版gym: (state, reward, done, info)
-                next_state, reward, done, info = step_result
-                truncated = False
-            else:
-                # 新版gym: (state, reward, terminated, truncated, info)
-                next_state, reward, done, truncated, info = step_result
+            next_state, reward, done, truncated, _ = env.step(action)
+            done = done or truncated
             
             # 存储经验
-            agent.remember(state, action, reward, next_state, done or truncated)
+            agent.remember(state, action, reward, next_state, done)
             
             state = next_state
             total_reward += reward
@@ -206,23 +176,21 @@ def train_dqn():
             # 软更新目标网络
             agent.update_target_network()
             
-            if done or truncated:
+            if done:
                 scores.append(steps)
                 
                 # 计算最近100个episode的平均得分
                 avg_score = np.mean(scores[-100:]) if len(scores) >= 100 else np.mean(scores)
                 average_scores.append(avg_score)
                 
-                if e % 10 == 0:
+                if e % 1 == 0:
                     print(f"Episode: {e+1}/{episodes}, Score: {steps}, "
                           f"Average Score: {avg_score:.2f}, Epsilon: {agent.epsilon:.3f}")
                 
                 # 如果平均得分达到195，认为问题已解决
-                if avg_score >= 195 and e >= 100:
+                if avg_score >= 195:
                     print(f"问题在 {e+1} 个episode后解决!")
                     agent.save('cartpole_dqn_solved.pth')
-                    # 可以选择提前结束训练
-                    # break
                 
                 break
     
@@ -232,51 +200,39 @@ def train_dqn():
     # 绘制训练结果
     plt.figure(figsize=(12, 6))
     plt.subplot(1, 2, 1)
-    plt.plot(scores, alpha=0.6, label='每局得分')
-    plt.plot(average_scores, 'r-', label='平均得分(100局)')
+    plt.plot(scores)
     plt.title('DQN Performance on CartPole')
     plt.xlabel('Episode')
     plt.ylabel('Score')
-    plt.legend()
     
     plt.subplot(1, 2, 2)
     plt.plot(average_scores)
     plt.title('Average Scores (100 episodes)')
     plt.xlabel('Episode')
     plt.ylabel('Average Score')
-    plt.axhline(y=195, color='r', linestyle='--', label='Solved threshold (195)')
+    plt.axhline(y=195, color='r', linestyle='--', label='Solved threshold')
     plt.legend()
     
     plt.tight_layout()
-    plt.savefig('training_results.png')
     plt.show()
     
     return agent
 
-def test_agent(agent=None, model_path='cartpole_dqn_solved.pth', episodes=10, render=True):
+def test_agent(agent, episodes=10, render=True):
     """测试训练好的代理"""
-    env = gym.make('CartPole-v1')
+    env = gym.make("CartPole-v1", render_mode="rgb_array")
     state_size = env.observation_space.shape[0]
     action_size = env.action_space.n
     
     # 如果agent为None，创建新agent并加载权重
     if agent is None:
         agent = DQNAgent(state_size, action_size)
-        try:
-            agent.load(model_path)
-        except FileNotFoundError:
-            print(f"模型文件 {model_path} 未找到，请先训练模型")
-            return
+        agent.load('cartpole_dqn_solved.pth')
     
     scores = []
     
     for e in range(episodes):
-        reset_result = env.reset()
-        if isinstance(reset_result, tuple):
-            state = reset_result[0]
-        else:
-            state = reset_result
-            
+        state, _ = env.reset()
         total_reward = 0
         
         while True:
@@ -289,23 +245,19 @@ def test_agent(agent=None, model_path='cartpole_dqn_solved.pth', episodes=10, re
                 q_values = agent.q_network(state_tensor)
             action = np.argmax(q_values.cpu().data.numpy())
             
-            step_result = env.step(action)
-            if len(step_result) == 4:
-                next_state, reward, done, info = step_result
-                truncated = False
-            else:
-                next_state, reward, done, truncated, info = step_result
+            next_state, reward, done, truncated, _ = env.step(action)
+            done = done or truncated
             
             state = next_state
             total_reward += reward
             
-            if done or truncated:
+            if done:
                 scores.append(total_reward)
                 print(f"Test Episode: {e+1}, Score: {total_reward}")
                 break
     
     env.close()
-    print(f"平均测试得分: {np.mean(scores):.2f} ± {np.std(scores):.2f}")
+    print(f"平均测试得分: {np.mean(scores):.2f}")
     return scores
 
 if __name__ == "__main__":

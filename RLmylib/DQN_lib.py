@@ -6,6 +6,8 @@ import random
 from collections import deque
 import matplotlib.pyplot as plt
 
+
+HIS_LENGTH = 10  # 历史数据长度
 class DQN(nn.Module):
     def __init__(self, state_size, action_size, hidden_size=128):
         super(DQN, self).__init__()
@@ -184,6 +186,9 @@ class MotorControlEnvironment:
         
         # 模拟传感器数据历史
         self.sensor_history = []
+
+        self.box_weight = 15.0  # 15 kg
+
         
     def reset(self):
         """重置环境"""
@@ -196,36 +201,59 @@ class MotorControlEnvironment:
         
         return self.sensor_history
     
+    # def step(self, action, human_intent_force=0):
+    #     """执行动作并返回新状态和奖励"""
+    #     self.current_step += 1
+        
+    #     # 获取当前状态
+    #     current_reading = self.sensor_history[-1].copy()
+        
+    #     # 根据动作调整扭矩（这里简化处理）
+    #     torque_change = action - 2  # 将动作映射到[-2, -1, 0, 1, 2]
+    #     torque_adjustment = torque_change * 0.5  # 缩放因子
+        
+    #     # 模拟物理响应（简化模型）
+    #     new_force = max(0, current_reading[0] + torque_adjustment + human_intent_force * 0.1)
+    #     new_pressure = max(0, current_reading[1] - human_intent_force * 0.05 + random.uniform(-0.5, 0.5))
+        
+    #     # 更新位置、速度、加速度（简化运动学）
+    #     acceleration = (new_force - current_reading[0]) * 0.1
+    #     new_velocity = current_reading[3] + acceleration * 0.1
+    #     new_position = current_reading[2] + new_velocity * 0.1
+        
+    #     new_reading = [new_force, new_pressure, new_position, new_velocity, acceleration]
+    #     self.sensor_history.append(new_reading)
+        
+    #     # 计算奖励
+    #     reward = self.compute_reward_difference(self.sensor_history)
+        
+    #     # 检查是否结束
+    #     done = self.current_step >= self.max_episode_steps
+        
+    #     return self.sensor_history, reward, done
+
+
     def step(self, action, human_intent_force=0):
-        """执行动作并返回新状态和奖励"""
         self.current_step += 1
-        
-        # 获取当前状态
-        current_reading = self.sensor_history[-1].copy()
-        
-        # 根据动作调整扭矩（这里简化处理）
+        current_reading = self.sensor_history[-1]
+        current_force, current_pressure, current_position, current_velocity, current_acceleration = current_reading
         torque_change = action - 2  # 将动作映射到[-2, -1, 0, 1, 2]
-        torque_adjustment = torque_change * 0.5  # 缩放因子
-        
-        # 模拟物理响应（简化模型）
-        new_force = max(0, current_reading[0] + torque_adjustment + human_intent_force * 0.1)
-        new_pressure = max(0, current_reading[1] - human_intent_force * 0.05 + random.uniform(-0.5, 0.5))
-        
-        # 更新位置、速度、加速度（简化运动学）
-        acceleration = (new_force - current_reading[0]) * 0.1
-        new_velocity = current_reading[3] + acceleration * 0.1
-        new_position = current_reading[2] + new_velocity * 0.1
-        
-        new_reading = [new_force, new_pressure, new_position, new_velocity, acceleration]
+        torque_adjustment = torque_change * 100
+        force_change = torque_adjustment - human_intent_force * 2
+        pressure_change = human_intent_force * 0.8 - torque_adjustment * 0.5
+        new_force = max(1.0, current_force + force_change + random.uniform(-50, 50))
+        new_pressure = max(1.0, current_pressure + pressure_change + random.uniform(-50, 50))
+        new_acceleration = (new_force - self.box_weight*9.8) / self.box_weight
+        new_velocity = current_velocity + new_acceleration * 0.01
+        new_position = max(0.0, current_position + new_velocity * 0.01)
+        new_reading = [new_force, new_pressure, new_position, new_velocity, new_acceleration]
         self.sensor_history.append(new_reading)
-        
-        # 计算奖励
+        if len(self.sensor_history) > HIS_LENGTH + 10:
+            self.sensor_history = self.sensor_history[-(HIS_LENGTH + 10):]
         reward = self.compute_reward_difference(self.sensor_history)
-        
-        # 检查是否结束
         done = self.current_step >= self.max_episode_steps
-        
         return self.sensor_history, reward, done
+
     
     def compute_reward_difference(self, sensor_data):
         """计算基于增量的奖励函数"""
