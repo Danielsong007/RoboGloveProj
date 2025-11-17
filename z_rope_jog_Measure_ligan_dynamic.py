@@ -104,7 +104,6 @@ def main():
                 if Rope_S>500:
                     # Weight = 3*np.mean(buffer_weight_Stouch) # put touch senser on top suface, can be a baseline
                     Weight = 1.5*np.mean(buffer_weight_Srope) + 1*np.mean(buffer_weight_Stouch)
-                    Weight = 1900
                     print('Measured Success! Weight:', Weight)
                 else:
                     Vgoal=0
