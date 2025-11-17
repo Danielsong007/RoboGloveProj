@@ -7,6 +7,7 @@ import numpy as np
 from collections import deque
 import threading
 import socket
+import csv
 
 Rope_S = 0
 Touch_S = 0
@@ -77,13 +78,24 @@ def main():
         while Touch_S==0:
             time.sleep(0.1)
             print('Waiting Touch Data!!')
-        
         Vgoal=0
         Vgoal_N=0
         Weight=0
         Touch_valve=70
         Pnum=0
+
+        with open('sensor_data.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['record_num', 'Rope_S', 'Touch_S', 'cur_pos_abs', 'Weight'])
+        record_num=0
+        record_step=20
         while True:
+            if record_num % record_step == 0:
+                with open('sensor_data.csv', 'a', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow([int(record_num/record_step), Rope_S, Touch_S, cur_pos_abs, Weight])
+            record_num +=1
+            
             time.sleep(0.001)
             if np.mean(buffer_dyn_Stouch)>Touch_valve and Weight==0:
                 print('Enter Measurement!!!')
@@ -104,7 +116,6 @@ def main():
                 if Rope_S>500:
                     # Weight = 3*np.mean(buffer_weight_Stouch) # put touch senser on top suface, can be a baseline
                     Weight = 1.5*np.mean(buffer_weight_Srope) + 1*np.mean(buffer_weight_Stouch)
-                    Weight = 1900
                     print('Measured Success! Weight:', Weight)
                 else:
                     Vgoal=0
