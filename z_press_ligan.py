@@ -61,14 +61,14 @@ def main():
             ave_touch=np.mean(buffer_dyn_Stouch)
 
             if ave_touch > 300: # Up
-                Vgoal_N = ave_touch*5
+                Vgoal_N = ave_touch*10
             elif np.mean(buffer_dyn_Stouch) > 150: # Suspend
                 Vgoal_N = 0
             else: # Down
                 Vgoal_N = -20*(150-ave_touch)
 
             diff=(Vgoal_N-Vgoal)*0.1
-            Max_diff=50
+            Max_diff=70
             diff = np.clip(diff, -Max_diff, Max_diff)
             Max_Vel=4000
             Vgoal = np.clip(Vgoal+diff, -Max_Vel, Max_Vel)
@@ -76,7 +76,7 @@ def main():
 
             if Pnum % 30 == 0:
                 print('ave_touch: ', ave_touch,
-                      'Vgoal_N: ', Vgoal_N,
+                      'Vgoal_N: ', int(Vgoal_N),
                       'Vgoal: ', int(Vgoal),
                       'diff: ', int(diff),
                       )
