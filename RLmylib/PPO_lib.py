@@ -124,41 +124,41 @@ class PPOTrainer:
                 continue
 
 
-# if __name__ == "__main__":
-#     env = RopeLiftEnv()
-#     policy = ActorCritic(env.state_dim)
-#     trainer = PPOTrainer(policy)
-#     try:
-#         count = 0
-#         state = env.state
-#         states, actions, rewards, log_probs = [], [], [], []
-#         current_policy = trainer.latest_policy
-#         while True:
-#             state_tensor = torch.FloatTensor(state).unsqueeze(0)
-#             with torch.no_grad():
-#                 dist, value = current_policy(state_tensor)
-#                 action = dist.sample()
-#                 log_prob = dist.log_prob(action)
-#             if env.cur_force > 8 and action > 0:
-#                 action = torch.clamp(action, -1, 0)
-#             next_state, reward, done = env.step(action.numpy())
-#             states.append(state)
-#             actions.append(action)
-#             rewards.append(reward)
-#             log_probs.append(log_prob)
-#             state = next_state
-#             count += 1
-#             if count % 100 == 0:
-#                 print(count/100)
-#                 trainer.data_queue.put((states, actions, rewards, log_probs), block=False) # 非阻塞方式添加数据，如果队列满则跳过
-#                 states, actions, rewards, log_probs = [], [], [], []
-#                 current_policy = trainer.latest_policy
+if __name__ == "__main__":
+    env = RopeLiftEnv()
+    policy = ActorCritic(env.state_dim)
+    trainer = PPOTrainer(policy)
+    try:
+        count = 0
+        state = env.state
+        states, actions, rewards, log_probs = [], [], [], []
+        current_policy = trainer.latest_policy
+        while True:
+            state_tensor = torch.FloatTensor(state).unsqueeze(0)
+            with torch.no_grad():
+                dist, value = current_policy(state_tensor)
+                action = dist.sample()
+                log_prob = dist.log_prob(action)
+            if env.cur_force > 8 and action > 0:
+                action = torch.clamp(action, -1, 0)
+            next_state, reward, done = env.step(action.numpy())
+            states.append(state)
+            actions.append(action)
+            rewards.append(reward)
+            log_probs.append(log_prob)
+            state = next_state
+            count += 1
+            if count % 100 == 0:
+                print(count/100)
+                trainer.data_queue.put((states, actions, rewards, log_probs), block=False) # 非阻塞方式添加数据，如果队列满则跳过
+                states, actions, rewards, log_probs = [], [], [], []
+                current_policy = trainer.latest_policy
     
-#     except KeyboardInterrupt:
-#         print("Training interrupted")
-#     finally:
-#         trainer.stop_event.set()
-#         trainer.train_thread.join()
-#         torch.save(trainer.latest_policy.state_dict(), "/home/mo/RoboGloveWS/RoboGloveProj/RLmylib/ppo_rope_lift_final.pth")
+    except KeyboardInterrupt:
+        print("Training interrupted")
+    finally:
+        trainer.stop_event.set()
+        trainer.train_thread.join()
+        torch.save(trainer.latest_policy.state_dict(), "/home/mo/RoboGloveWS/RoboGloveProj/RLmylib/ppo_rope_lift_final.pth")
 
 
