@@ -14,9 +14,9 @@ Touch_S = 0
 cur_pos_abs = 0
 
 buffer_dyn_Srope = deque([0.0]*3, maxlen=3)
-buffer_weight_Srope = deque([0.0]*30, maxlen=50)
+buffer_weight_Srope = deque([0.0]*10, maxlen=10)
 buffer_dyn_Stouch = deque([0.0]*3, maxlen=3)
-buffer_weight_Stouch = deque([0.0]*30, maxlen=50)
+buffer_weight_Stouch = deque([0.0]*10, maxlen=10)
 buffer_rising_CurPos = deque([0]*5, maxlen=5)
 rising_slope = 0
 
@@ -81,19 +81,21 @@ def main():
         Vgoal=0
         Vgoal_N=0
         Weight=0
+        mode=0
         Touch_valve=70
         Pnum=0
 
         with open('sensor_data.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(['record_num', 'Rope_S', 'Touch_S', 'cur_pos_abs', 'Weight'])
+            writer.writerow(['record_num', 'mode', 'Rope_S', 'Touch_S', 'cur_pos_abs', 'Weight'])
         record_num=0
-        record_step=20
+        record_step=10
+        
         while True:
             if record_num % record_step == 0:
                 with open('sensor_data.csv', 'a', newline='') as csvfile:
                     writer = csv.writer(csvfile)
-                    writer.writerow([int(record_num/record_step), Rope_S, Touch_S, cur_pos_abs, Weight])
+                    writer.writerow([int(record_num/record_step), mode, Rope_S, Touch_S, cur_pos_abs, Weight])
             record_num +=1
             
             time.sleep(0.001)
@@ -115,7 +117,9 @@ def main():
                 time.sleep(0.5)
                 if Rope_S>500:
                     # Weight = 3*np.mean(buffer_weight_Stouch) # put touch senser on top suface, can be a baseline
-                    Weight = 1.5*np.mean(buffer_weight_Srope) + 1*np.mean(buffer_weight_Stouch)
+                    Weight = 0.9*np.mean(buffer_weight_Srope) + 0.9*np.mean(buffer_weight_Stouch)
+                    print('buffer_weight_Srope:', buffer_weight_Srope)
+                    print('buffer_weight_Stouch:', buffer_weight_Stouch)
                     print('Measured Success! Weight:', Weight)
                 else:
                     Vgoal=0
@@ -130,7 +134,8 @@ def main():
             else:
                 mode=2 # Load Mode
                 # if rising_slope > 2: # Update weight only when rising
-                #     Weight = np.mean(buffer_weight_Srope) + 0.6*np.mean(buffer_weight_Stouch)
+                if np.mean(buffer_dyn_Stouch) > 400:
+                    Weight = 0.9*np.mean(buffer_weight_Srope) + 0.9*np.mean(buffer_weight_Stouch)
                 err=Weight-np.mean(buffer_dyn_Srope)
                 if abs(err)<150:
                     err=0
@@ -152,7 +157,7 @@ def main():
                     #   'Vgoal:',int(Vgoal),
                     #   'diff:',int(diff),
                       'Weight:',int(Weight),
-                      'slope:', int(rising_slope),
+                    #   'slope:', int(rising_slope),
                       )
             # myXYZ.AxisMode_Jog(3,30,-2000)
 
