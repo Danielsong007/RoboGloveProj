@@ -43,77 +43,75 @@ def touch_sensor_server(host='0.0.0.0', port=65432):
 threading.Thread(target=read_rope_sensor, args=(), daemon=True).start()
 threading.Thread(target=touch_sensor_server, args=(), daemon=True).start()
 
-def nonlinear_control(pressure, tension):
-    threshold_pres = 400
-    if pressure < threshold_pres:
-        up_speed = (pressure / threshold_pres) * 500
-    else:
-        ratio = (pressure - threshold_pres) / threshold_pres
-        up_speed = 500 + ratio ** 0.8 * 2500
+
+
+def nonlinear_control(pressure):
+    center_pressure = 400  # 中心压力值
+    min_pressure = 100     # 最小压力
+    max_pressure = 900     # 最大压力
     
-    # 拉力控制：向下速度分量
-    threshold_tens = 1000
-    if tension < threshold_tens:
-        down_speed = (tension / threshold_tens) * 500
+    if pressure < center_pressure:
+        ratio = (center_pressure - pressure) / (center_pressure - min_pressure)
+        down_torq = ratio ** 1.5 * 200
+        up_torq = 0
     else:
-        # 大于1000：指数快速增加
-        ratio = (tension - threshold_tens) / threshold_tens
-        down_speed = 500 + ratio ** 0.8 * 2500
+        ratio = (pressure - center_pressure) / (max_pressure - center_pressure)
+        up_torq = ratio ** 1.5 * 1500
+        down_torq = 0
     
     # 最终速度目标
-    Vgoal_N = up_speed - down_speed
+    Tgoal_N = up_torq - down_torq
     
-    return Vgoal_N
+    return Tgoal_N
 
 def main():
     try:
         myXYZ = xyz_utils()
-        print('Start Enable')
         myXYZ.OpenEnableZero_ALL()
-        InitPos = myXYZ.Safe_Jog()
-        
+        myXYZ.AxisMode_Torque(3)
+        mode=0
+
         while Touch_S == 0:
             time.sleep(0.1)
             print('Waiting Touch Data!!')
-        
-        Vgoal_N = 0
-        Vgoal = 0
+
+        Tgoal_N = 0
+        Tgoal = 0
         Srope_buffer = deque(maxlen=3)
         Stouch_buffer = deque(maxlen=3)
-        Pnum = 0
-
+        
         while True:
-            time.sleep(0.001)
+            dt=0.001
+            time.sleep(dt)
             Srope_buffer.append(Rope_S)
             Ave_Rope_S = np.mean(Srope_buffer)
             Stouch_buffer.append(Touch_S)
             Ave_Touch_S = np.mean(Stouch_buffer)
 
-            if Ave_Touch_S < 70:
-                mode = 3  # Lossen Mode
-                err = 50 - Ave_Rope_S
-                Vgoal_N = 40 * err
-            else:
-                mode = 2  # Load Mode
-                # 使用改进的非线性控制
-                Vgoal_N = nonlinear_control(Ave_Touch_S, Ave_Rope_S)
+            Tgoal_N = nonlinear_control(Ave_Touch_S)
 
-            diff=(Vgoal_N-Vgoal)*0.1
-            Max_diff=40
-            diff = np.clip(diff, -Max_diff, Max_diff)
-            Max_Vel=4000
-            Vgoal = np.clip(Vgoal+diff, -Max_Vel, Max_Vel)
-            myXYZ.AxisMode_Jog(3,30,Vgoal)
+            diff=(Tgoal_N-Tgoal)*0.9
+            Max_Torq=2000
+            Tgoal = np.clip(Tgoal+diff, -Max_Torq, Max_Torq)
+            Tgoal = int(Tgoal)
 
-            Pnum += 1
-            if Pnum % 29 == 0:
-                print(f'Mode:{mode} Rope:{int(Ave_Rope_S)} Touch:{int(Ave_Touch_S)} '
-                      f'Vgoal_N:{int(Vgoal_N)} diff:{int(diff)}')
+            CurPos=myXYZ.Get_Pos(3)
+            if CurPos>1962000000: # 1953000000.0 1962000000.0
+                Tgoal=50
+            if CurPos<1953000000:
+                Tgoal=-50
+            myXYZ.Set_Torque(3,-Tgoal)
+            myXYZ.Set_Torque(3,-Tgoal)
+            T_Sent,T_Actual,V_actual=myXYZ.Read_Paras(3)
+            print('T_Goal:',Tgoal, 'T_Sent:',-T_Sent, 'T_Actual: ',-T_Actual, 'diff:',int(diff))
 
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")
+        myXYZ.Set_Torque(3,0)
         myXYZ.SafeQuit()
         sys.exit(0)
 
 if __name__ == "__main__":
     main()
+
+
