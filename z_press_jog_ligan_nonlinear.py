@@ -8,8 +8,6 @@ from collections import deque
 import threading
 import socket
 import math
-import matplotlib.pyplot as plt
-
 
 # 全局变量存储传感器数据
 Rope_S = 0
@@ -68,14 +66,18 @@ threading.Thread(target=touch_sensor_server, args=(), daemon=True).start()
 #     return Vgoal_N
 
 def nonlinear_control(pres):
-    if pres > 300:
-        pres=(pres - 400) / 300 * 10
-        Vgoal_N = 1 / (1+np.exp(-pres)) * 11000 - 384
+    cent_pres = 300  # 中心压力值
+    ratio = (pres - cent_pres) / cent_pres
+    if pres <= cent_pres:
+        Vgoal_N = -abs(ratio) ** 1 * 2000
     else:
-        pres=(pres - 200) / 300 * 10
-        Vgoal_N = 1 / (1+np.exp(-pres)) * 5000 - 5000 + 178
+        if pres < 800:
+            Vgoal_N = ratio ** 1.2 * 2000
+        elif pres < 1200:
+            Vgoal_N = ratio ** 1.5 * 2000
+        else:
+            Vgoal_N = ratio ** 2 * 3000
     return Vgoal_N
-
 
 def main():
     try:
@@ -94,9 +96,6 @@ def main():
         Srope_buffer = deque(maxlen=3)
         Stouch_buffer = deque(maxlen=3)
         Pnum = 0
-
-        touch_set=[]
-        vgoal_set=[]
 
         while True:
             time.sleep(0.001)
@@ -120,7 +119,7 @@ def main():
             myXYZ.AxisMode_Jog(3,30,Vgoal)
 
             Pnum += 1
-            if Pnum % 5 == 0 and mode == 2:
+            if Pnum % 10 == 0 and mode == 2:
                 print(
                     # 'Mode:',mode,
                     # 'Rope:',int(Ave_Rope_S),
