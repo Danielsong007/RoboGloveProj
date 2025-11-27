@@ -67,36 +67,22 @@ def touch_sensor_server(host='0.0.0.0', port=65432):
 
 class ImpedanceController:
     def __init__(self):
-        self.Md = 12  # 期望质量 (虚拟质量)
-        self.Bd = 0.15  # 期望阻尼
-        self.gravity_force_load = 1800  # 负载模式重力补偿值
-        self.gravity_force_loosen = 150   # 松弛模式重力补偿值
+        self.Md = 15  # 期望质量 (虚拟质量)
+        self.Bd = 0.1  # 期望阻尼
         self.current_velocity = 0.0
         self.current_acceleration = 0.0
-        self.max_velocity = 8000
-        self.max_acceleration = 60
         
-    def calculate_human_force(self, rope_force, is_load_mode):
-        if is_load_mode:
-            gravity_force = self.gravity_force_load
-        else:
-            gravity_force = self.gravity_force_loosen
+    def impedance_control(self, rope_force, gravity_force, cur_pos_abs):
         human_force = gravity_force - rope_force
-        return human_force
-    
-    def impedance_control(self, rope_force, is_load_mode):
-        # 计算人力引导（基于拉力变化）
-        human_force = self.calculate_human_force(rope_force, is_load_mode)
-        if is_load_mode:
-            dead_zone = 20  # 负载模式死区
-        else:
-            dead_zone = 5   # 松弛模式死区较小
+        dead_zone = 20
         if abs(human_force) < dead_zone:
             human_force = 0
+        max_acc = 35 + abs(1962000000-cur_pos_abs)/(1962000000-1953000000)*25
+        max_vel = 8000
         self.current_acceleration = (human_force - self.Bd * self.current_velocity) / self.Md
-        self.current_acceleration = np.clip(self.current_acceleration, -self.max_acceleration, self.max_acceleration)
+        self.current_acceleration = np.clip(self.current_acceleration, -max_acc, max_acc)
         self.current_velocity += self.current_acceleration
-        self.current_velocity = np.clip(self.current_velocity, -self.max_velocity, self.max_velocity)
+        self.current_velocity = np.clip(self.current_velocity, -max_vel, max_vel)
         return self.current_velocity
 
 def main():
@@ -126,21 +112,20 @@ def main():
             current_touch_force = np.mean(buffer_dyn_Stouch)
             
             if current_touch_force < Touch_valve:
-                mode = 3 # 松弛模式 - 也使用阻抗控制，重力补偿值为50
-                is_load_mode = False
+                mode = 3 # 松弛模式
+                gravity_force = 250
             else:
-                mode = 2 # 负载模式 - 阻抗控制，重力补偿值为2000
-                is_load_mode = True
-            Vgoal = imp_controller.impedance_control(current_rope_force, is_load_mode)
+                mode = 2 # 负载模式
+                gravity_force = 1700
+            Vgoal = imp_controller.impedance_control(current_rope_force, gravity_force, cur_pos_abs)
             myXYZ.AxisMode_Jog(3, 30, Vgoal)
             Pnum += 1
             if Pnum % 10 == 0:
-                human_force = imp_controller.calculate_human_force(current_rope_force, is_load_mode)
                 print(
                       'Mode:', mode,
                       'Touch_F:', int(current_touch_force),
                       'Rope_F:', int(current_rope_force),
-                      'Human_F:', int(human_force),
+                      'Human_F:', int(gravity_force - current_rope_force),
                       'Touch_F:', int(current_touch_force),
                       'Vgoal:', int(Vgoal),
                       'diff:', int(imp_controller.current_acceleration),

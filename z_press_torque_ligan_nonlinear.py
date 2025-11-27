@@ -96,7 +96,7 @@ def main():
             Tgoal = int(Tgoal)
 
             CurPos=myXYZ.Get_Pos(3)
-            if CurPos>1962000000: # 1953000000.0 1962000000.0
+            if CurPos>1962000000:
                 Tgoal=50
             if CurPos<1953000000:
                 Tgoal=-50
