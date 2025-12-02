@@ -7,10 +7,14 @@ import numpy as np
 from collections import deque
 import threading
 import socket
+import csv
+
 
 Rope_S = 0
 Touch_S = 0
 cur_pos_abs = 0
+cur_vel = 0
+cur_acc = 0
 
 buffer_dyn_Srope = deque([0.0]*3, maxlen=3)
 buffer_weight_Srope = deque([0.0]*30, maxlen=50)
@@ -21,14 +25,28 @@ rising_slope = 0
 
 def read_cur_pos(myXYZ, InitPos):
     global cur_pos_abs
+    global cur_vel
+    global cur_acc
     global buffer_rising_CurPos
     global rising_slope
+    last_time = 0
+    last_pos = 0
+    last_vel = 0
     while True:
+        time.sleep(0.001)
         cur_pos_abs = myXYZ.Get_Pos(3)+InitPos
+        cur_time = time.time()
+        dt = cur_time -last_time
+        # cur_vel = (cur_pos_abs - last_pos) / dt
+        # cur_acc = (cur_vel - last_vel) / dt
+        cur_vel = (cur_pos_abs - last_pos)
+        cur_acc = (cur_vel - last_vel)
+        last_time = cur_time
+        last_pos = cur_pos_abs
+        last_vel = cur_vel
         buffer_rising_CurPos.append(cur_pos_abs)
         x = np.arange(len(buffer_rising_CurPos))*1000
         rising_slope, _ = np.polyfit(x, -np.array(buffer_rising_CurPos), 1)
-        time.sleep(0.001)
 
 def read_rope_sensor():
     global Rope_S
@@ -101,12 +119,22 @@ def main():
         Vgoal=0
         Touch_valve=50
         Pnum=0
-        last_time = time.time()
-        
+        mode=0
+
+        with open('sensor_data.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['record_num', 'mode', 'Rope_S', 'Touch_S', 'cur_pos_abs', 'cur_vel', 'cur_acc'])
+        record_num=0
+        record_step=10
+
         while True:
-            current_time = time.time()
-            dt = current_time - last_time
-            last_time = current_time
+            if record_num % record_step == 0:
+                with open('sensor_data.csv', 'a', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    # writer.writerow([int(record_num/record_step), mode, Rope_S, Touch_S, cur_pos_abs, cur_vel, cur_acc])
+                    writer.writerow([cur_vel, '\t', cur_acc])
+            record_num +=1
+
             time.sleep(0.001)
             current_rope_force = np.mean(buffer_dyn_Srope)
             current_touch_force = np.mean(buffer_dyn_Stouch)
