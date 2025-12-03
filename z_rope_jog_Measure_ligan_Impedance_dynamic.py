@@ -88,8 +88,8 @@ class ImpedanceController:
         self.current_velocity = 0.0
         self.current_acceleration = 0.0
         
-    def impedance_control(self, rope_force, gravity_force, cur_pos_abs):
-        human_force = gravity_force - rope_force
+    def impedance_control(self, rope_force, gravity, cur_pos_abs):
+        human_force = gravity - rope_force
         dead_zone = 20
         if abs(human_force) < dead_zone:
             human_force = 0
@@ -100,6 +100,30 @@ class ImpedanceController:
         self.current_velocity += self.current_acceleration
         self.current_velocity = np.clip(self.current_velocity, -max_vel, max_vel)
         return self.current_velocity
+
+def nonlinear_control(pres):
+    p_left = 300
+    y_left = 0
+    p_right = 1500
+    y_right = 1.5
+    p_cent = (p_left + p_right) / 2  # 600
+    mid_start = 500  # 中间直线段开始
+    mid_end = 900    # 中间直线段结束
+    if pres <= mid_start:
+        # 左侧二次曲线区域
+        x_norm = (pres - p_left) / (mid_start - p_left)
+        a = y_left - 1.0  # 目标值改为1.0（中间直线段的值）
+        b = 2 * (1.0 - y_left)
+        coef = a * x_norm**2 + b * x_norm + y_left
+    elif pres <= mid_end:
+        coef = 1.0
+    else:
+        x_norm = (pres - mid_end) / (p_right - mid_end)
+        a = y_right - 1.0  # 目标值改为1.0（中间直线段的值）
+        b = 0
+        coef = a * x_norm**2 + b * x_norm + 1.0
+    coef = np.clip(coef, 0,2)
+    return coef
 
 def main():
     try:
@@ -122,40 +146,39 @@ def main():
         with open('sensor_data.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(['record_num', 'mode', 'Rope_S', 'Touch_S', 'cur_pos_abs', 'cur_vel', 'cur_acc'])
-        record_num=0
-        record_step=1
 
         while True:
-            if record_num % record_step == 0:
-                with open('sensor_data.csv', 'a', newline='') as csvfile:
-                    writer = csv.writer(csvfile)
-                    writer.writerow([int(record_num/record_step), mode, Rope_S, Touch_S, cur_pos_abs, cur_vel, cur_acc])
-            record_num +=1
-
             time.sleep(0.001)
-            current_rope_force = np.mean(buffer_dyn_Srope)
-            current_touch_force = np.mean(buffer_dyn_Stouch)
-            
-            if current_touch_force < Touch_valve:
+            if np.mean(buffer_dyn_Stouch) < Touch_valve:
                 mode = 3 # 松弛模式
-                gravity_force = 250
+                gravity = 250
+                Vgoal = imp_controller.impedance_control(np.mean(buffer_dyn_Srope), gravity, cur_pos_abs)
+                myXYZ.AxisMode_Jog(3, 30, Vgoal)
             else:
                 mode = 2 # 负载模式
-                gravity_force = 1700
-            Vgoal = imp_controller.impedance_control(current_rope_force, gravity_force, cur_pos_abs)
-            myXYZ.AxisMode_Jog(3, 30, Vgoal)
-            Pnum += 1
-            if Pnum % 10 == 0:
-                print(
-                      'Mode:', mode,
-                      'Touch_F:', int(current_touch_force),
-                      'Rope_F:', int(current_rope_force),
-                      'Human_F:', int(gravity_force - current_rope_force),
-                      'Touch_F:', int(current_touch_force),
-                      'Vgoal:', int(Vgoal),
-                      'diff:', int(imp_controller.current_acceleration),
-                    #   'dt:', round(dt,5),
-                      )
+                gravity = 2000
+                while np.mean(buffer_dyn_Stouch) >= Touch_valve:
+                    time.sleep(0.001)
+                    coef = nonlinear_control(np.mean(buffer_dyn_Stouch))
+                    gravity=gravity+(gravity*coef-gravity)*0.02
+                    gravity = np.clip(gravity, 100, 3000)
+                    Vgoal = imp_controller.impedance_control(np.mean(buffer_dyn_Srope), gravity, cur_pos_abs)
+                    myXYZ.AxisMode_Jog(3, 30, Vgoal)
+                    Pnum += 1
+                    if Pnum % 10 == 0:
+                        print(
+                            'Mode:', mode,
+                            'Touch_F:', int(np.mean(buffer_dyn_Stouch)),
+                            # 'Rope_F:', int(np.mean(buffer_dyn_Srope)),
+                            # 'Human_F:', int(gravity - np.mean(buffer_dyn_Srope)),
+                            # 'Vgoal:', int(Vgoal),
+                            # 'diff:', int(imp_controller.current_acceleration),
+                            'coef:', round(coef,2),
+                            'gravity:', round(gravity,2),
+                            )
+                        with open('sensor_data.csv', 'a', newline='') as csvfile:
+                            writer = csv.writer(csvfile)
+                            writer.writerow([int(np.mean(buffer_dyn_Stouch)), coef, gravity])
 
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")
