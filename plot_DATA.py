@@ -26,10 +26,11 @@ plt.plot(x, col3, 'g-', label='第三列数据', linewidth=1.5)
 # plt.plot(x, (col5-1951029190)/10000, 'k-', label='第三列数据', linewidth=1.5)
 
 
-plt.xlabel('数据行数')
-plt.ylabel('数值')
-plt.title('前三列数据对比')
 plt.legend()
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.show()
+
+
+
+
