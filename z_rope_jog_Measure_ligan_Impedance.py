@@ -8,6 +8,8 @@ from collections import deque
 import threading
 import socket
 import csv
+import matplotlib.pyplot as plt
+
 
 
 Rope_S = 0
@@ -29,8 +31,8 @@ def read_cur_pos(myXYZ, InitPos):
     global cur_acc
     global buffer_rising_CurPos
     global rising_slope
-    last_time = 0
-    last_pos = 0
+    last_time = time.time()
+    last_pos = myXYZ.Get_Pos(3)+InitPos
     last_vel = 0
     while True:
         time.sleep(0.001)
