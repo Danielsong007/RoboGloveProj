@@ -1,5 +1,6 @@
 import serial
 import heapq  # 用于获取最大的10个数
+import time
 
 class LiganSensor:
     def __init__(self, port='COM3'): # Windows为COMx，Linux为/dev/ttyUSBx
@@ -43,9 +44,14 @@ class LiganSensor:
 if __name__ == "__main__":
     liganS = LiganSensor(port='/dev/ttyUSB3')  # 根据实际串口修改
     try:
+        last_t=time.time()
         while True:
+            time.sleep(0.001)  # 等待 100ms，确保命令已发送
+            cur_t=time.time()
+            dt=cur_t-last_t
+            last_t=cur_t
             data=liganS.read_data()
-            print(data[1])
+            print(data[1],1/dt)
             # liganS.print_data()
     except KeyboardInterrupt:
         print("\n用户中断")

@@ -90,8 +90,8 @@ class ImpedanceController:
         self.current_velocity = 0.0
         self.current_acceleration = 0.0
         
-    def impedance_control(self, rope_force, gravity_force, cur_pos_abs):
-        human_force = gravity_force - rope_force
+    def impedance_control(self, rope_force, Weight, cur_pos_abs):
+        human_force = Weight - rope_force
         dead_zone = 20
         if abs(human_force) < dead_zone:
             human_force = 0
@@ -117,34 +117,55 @@ def main():
             time.sleep(0.1)
             print('Waiting Touch Data!!')
         Vgoal=0
-        Touch_valve=50
+        Touch_valve=100
         Pnum=0
         mode=0
+        Weight=0
 
         with open('sensor_data.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(['record_num', 'mode', 'Rope_S', 'Touch_S', 'cur_pos_abs', 'cur_vel', 'cur_acc'])
         record_num=0
         record_step=1
-
         while True:
             if record_num % record_step == 0:
                 with open('sensor_data.csv', 'a', newline='') as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerow([int(record_num/record_step), mode, Rope_S, Touch_S, cur_pos_abs, cur_vel, cur_acc])
             record_num +=1
-
-            time.sleep(0.001)
             current_rope_force = np.mean(buffer_dyn_Srope)
             current_touch_force = np.mean(buffer_dyn_Stouch)
             
-            if current_touch_force < Touch_valve:
+            if current_touch_force>Touch_valve and Weight<=300:
+                print('Enter Measurement!!!')
+                mode=1 # Measure Mode
+                cur_time = time.time()
+                while Rope_S<500 and (time.time()-cur_time)<1:
+                    Vgoal=2000
+                    myXYZ.AxisMode_Jog(3,30,Vgoal)
+                    print('Waiting Lifting',
+                          'Rope_S:', Rope_S,
+                          'Elapsed time:', int(100*(time.time()-cur_time)),
+                          'ave_dyn_Srope:', int(np.mean(buffer_dyn_Srope)),
+                          'ave_dyn_Stouch:', int(np.mean(buffer_dyn_Stouch)),
+                          )
+                    time.sleep(0.01)
+                time.sleep(0.5)
+                if Rope_S>500:
+                    Weight = (1*np.mean(buffer_weight_Srope) + 0.5*np.mean(buffer_weight_Stouch))*1.5
+                    print('Measured Success! Weight:', Weight)
+                else:
+                    Vgoal=0
+                    myXYZ.AxisMode_Jog(3,30,Vgoal)
+                    time.sleep(0.5)
+                    print('Measured Failure: Over Time!')
+            elif current_touch_force <= Touch_valve:
                 mode = 3 # 松弛模式
-                gravity_force = 250
+                Weight = 250
             else:
                 mode = 2 # 负载模式
-                gravity_force = 1700
-            Vgoal = imp_controller.impedance_control(current_rope_force, gravity_force, cur_pos_abs)
+                Weight = 1700
+            Vgoal = imp_controller.impedance_control(current_rope_force, Weight, cur_pos_abs)
             myXYZ.AxisMode_Jog(3, 30, Vgoal)
             Pnum += 1
             if Pnum % 10 == 0:
@@ -152,12 +173,13 @@ def main():
                       'Mode:', mode,
                       'Touch_F:', int(current_touch_force),
                       'Rope_F:', int(current_rope_force),
-                      'Human_F:', int(gravity_force - current_rope_force),
+                      'Human_F:', int(Weight - current_rope_force),
                       'Touch_F:', int(current_touch_force),
                       'Vgoal:', int(Vgoal),
                       'diff:', int(imp_controller.current_acceleration),
-                    #   'dt:', round(dt,5),
+                    #   '1/dt:', round(1/dt,5),
                       )
+            
 
     except KeyboardInterrupt:
         print("Ctrl-C is pressed!")

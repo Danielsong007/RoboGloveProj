@@ -23,12 +23,16 @@ class DaYangSensor:
 
 # 使用示例
 if __name__ == "__main__":
-    sensor = DaYangSensor('/dev/ttyUSB1',1)
+    sensor = DaYangSensor('/dev/ttyUSB0',1)
     try:
+        last_t=time.time()
         while True:
+            time.sleep(0.00001)  # 等待 100ms，确保命令已发送
+            cur_t=time.time()
+            dt=cur_t-last_t
+            last_t=cur_t
             force=sensor.read_angles()
-            print(force)
-            time.sleep(0.01)  # 等待 100ms，确保命令已发送
+            print(force,1/dt)
     except KeyboardInterrupt:
         print("KeyboardExit")
     finally:

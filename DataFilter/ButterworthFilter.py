@@ -6,7 +6,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # 1. Load Data
-df = pd.read_csv('DataFilter/sensor_data_test.csv')
+df = pd.read_csv('DataFilter/sensor_data.csv')
 pos_raw = df.iloc[:, 4].astype(float).values
 t = np.arange(len(pos_raw))
 
@@ -35,7 +35,7 @@ acc_smooth = acc_smooth / 7500000 * -1
 df['Position_Smooth'] = pos_smooth
 df['Velocity_Smooth'] = vel_smooth
 df['Acceleration_Smooth'] = acc_smooth
-df.to_csv('DataFilter/sensor_data_test.csv', index=False)
+df.to_csv('DataFilter/sensor_data.csv', index=False)
 
 # 5. Plot
 fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 8), sharex=True)
