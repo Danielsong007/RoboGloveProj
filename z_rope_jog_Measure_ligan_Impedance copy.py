@@ -143,7 +143,7 @@ def main():
                 gravity_force = 250
             else:
                 mode = 2 # 负载模式
-                gravity_force = 1700
+                gravity_force = 1800
             Vgoal = imp_controller.impedance_control(current_rope_force, gravity_force, cur_pos_abs)
             myXYZ.AxisMode_Jog(3, 30, Vgoal)
             Pnum += 1

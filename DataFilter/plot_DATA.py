@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # 读取CSV文件
-df = pd.read_csv('DataFilter/sensor_data.csv')
+df = pd.read_csv('DataFilter/sensor_data_102.csv')
 
 # 选择前三列数据（跳过第一行标题）
 col1 = df.iloc[1:, 0]  # 第一列数据
@@ -21,9 +21,9 @@ col10 = df.iloc[1:, 9]  # 第三列数据
 x = range(len(col1))
 
 # 在同一张图中绘制三列数据，使用不同颜色
-plt.plot(x, col3/100, 'b-', label='Rope', linewidth=1.5)
-plt.plot(x, col4/100, 'y-', label='Touch', linewidth=1.5)
-plt.plot(x, col3/100+col4/100*2.4, 'r-', label='Touch+Rope', linewidth=1.5)
+# plt.plot(x, col3/100, 'b-', label='Rope', linewidth=1.5)
+plt.plot(x, col4/10, 'y-', label='Touch', linewidth=1.5)
+# plt.plot(x, col4/10-col10/3*0.3, 'r-', label='Touch-Acc', linewidth=1.5)
 # plt.plot(x, col9/100000, 'g-', label='Vel', linewidth=1.5)
 # plt.plot(x, -col9/1000000, 'r-', label='Vel_Smooth', linewidth=1.5)
 plt.plot(x, col10/3, 'k-', label='Acc', linewidth=1.5)
