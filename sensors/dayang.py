@@ -13,7 +13,7 @@ class DaYangSensor:
         response = self.ser.read(9)  # 读取传感器应答命令
         # print(f"Response in HEX: {response.hex().upper()}")
         force_data = int.from_bytes(response[3:7], byteorder='big')
-        if force_data>10000:
+        if force_data>20000:
             return 0
         else:
             return force_data
@@ -23,7 +23,7 @@ class DaYangSensor:
 
 # 使用示例
 if __name__ == "__main__":
-    sensor = DaYangSensor('/dev/ttyUSB0',1)
+    sensor = DaYangSensor('/dev/ttyUSB1',1)
     try:
         last_t=time.time()
         while True:

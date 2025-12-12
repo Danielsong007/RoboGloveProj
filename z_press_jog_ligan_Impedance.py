@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 Rope_S = 0
 Touch_S = 0
+Pres_S = 0
 cur_pos_abs = 0
 cur_vel = 0
 cur_acc = 0
@@ -21,6 +22,7 @@ buffer_dyn_Srope = deque([0.0]*3, maxlen=3)
 buffer_weight_Srope = deque([0.0]*30, maxlen=50)
 buffer_dyn_Stouch = deque([0.0]*3, maxlen=3)
 buffer_weight_Stouch = deque([0.0]*30, maxlen=50)
+buffer_dyn_Spres = deque([0.0]*3, maxlen=3)
 buffer_rising_CurPos = deque([0]*5, maxlen=5)
 rising_slope = 0
 current_rope_force = np.mean(buffer_dyn_Srope)
@@ -64,6 +66,21 @@ def read_rope_sensor():
             time.sleep(0.001)
     except KeyboardInterrupt:
         Srope.close()
+        print("Ctrl-C is pressed!")
+
+def read_pres_sensor():
+    global Pres_S
+    global buffer_dyn_Spres
+    global current_pres_force
+    Spres = DaYangSensor('/dev/ttyUSB1',1)
+    try:
+        while True:
+            Pres_S = Spres.read_angles()
+            buffer_dyn_Spres.append(Pres_S)
+            current_pres_force = np.mean(buffer_dyn_Spres)
+            time.sleep(0.001)
+    except KeyboardInterrupt:
+        Spres.close()
         print("Ctrl-C is pressed!")
 
 def touch_sensor_server(host='0.0.0.0', port=65432):
@@ -135,6 +152,7 @@ def main():
         myXYZ.OpenEnableZero_ALL()
         InitPos=myXYZ.Safe_Jog()
         threading.Thread(target=read_rope_sensor, args=(), daemon=True).start()
+        threading.Thread(target=read_pres_sensor, args=(), daemon=True).start()
         threading.Thread(target=touch_sensor_server, args=(), daemon=True).start()
         threading.Thread(target=read_cur_pos, args=(myXYZ,InitPos,), daemon=True).start()
         while Touch_S==0:
