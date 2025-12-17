@@ -12,19 +12,20 @@ import matplotlib.pyplot as plt
 
 Rope_S = 0
 Pres_S = 0
+Touch_S = 0
 cur_pos_abs = 0
 cur_vel = 0
 cur_acc = 0
 Vgoal=0
 
 buffer_dyn_Srope = deque([0.0]*3, maxlen=3)
-buffer_weight_Srope = deque([0.0]*30, maxlen=50)
 buffer_dyn_Spres = deque([0.0]*3, maxlen=3)
-buffer_rising_CurPos = deque([0]*5, maxlen=5)
-rising_slope = 0
+buffer_dyn_Stouch = deque([0.0]*3, maxlen=3)
 current_rope_force = np.mean(buffer_dyn_Srope)
 current_pres_force = np.mean(buffer_dyn_Spres)
-
+current_touch_force = np.mean(buffer_dyn_Stouch)
+buffer_rising_CurPos = deque([0]*5, maxlen=5)
+rising_slope = 0
 
 def read_cur_pos(myXYZ, InitPos):
     global cur_pos_abs
@@ -52,14 +53,12 @@ def read_cur_pos(myXYZ, InitPos):
 def read_rope_sensor():
     global Rope_S
     global buffer_dyn_Srope
-    global buffer_weight_Srope
     global current_rope_force
     Srope = DaYangSensor('/dev/ttyUSB0',0)
     try:
         while True:
             Rope_S = Srope.read_angles()
             buffer_dyn_Srope.append(Rope_S)
-            buffer_weight_Srope.append(Rope_S)
             current_rope_force = np.mean(buffer_dyn_Srope)
     except KeyboardInterrupt:
         Srope.close()
@@ -78,6 +77,26 @@ def read_pres_sensor():
     except KeyboardInterrupt:
         Spres.close()
         print("Ctrl-C is pressed!")
+
+def touch_sensor_server(host='0.0.0.0', port=65432):
+    global Touch_S
+    global buffer_dyn_Stouch
+    global current_touch_force
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((host, port))
+        s.listen()
+        print(f"Server started, waiting for connection on {port}...")
+        conn, addr = s.accept()
+        with conn:
+            print(f"Connected by {addr}")
+            while True:
+                data = conn.recv(1024)
+                if not data:
+                    break
+                msg = data.decode()
+                Touch_S = int(msg.split()[-1])
+                buffer_dyn_Stouch.append(Touch_S)
+                current_touch_force = np.mean(buffer_dyn_Stouch)
 
 class IC_ROPE:
     def __init__(self):
@@ -126,6 +145,12 @@ def main():
         threading.Thread(target=read_rope_sensor, args=(), daemon=True).start()
         threading.Thread(target=read_pres_sensor, args=(), daemon=True).start()
         threading.Thread(target=read_cur_pos, args=(myXYZ,InitPos,), daemon=True).start()
+
+        # threading.Thread(target=touch_sensor_server, args=(), daemon=True).start()
+        # while Touch_S==0:
+        #     time.sleep(0.1)
+        #     print('Waiting Touch Data!!')
+        
         Pres_valve=30
         Pnum=0
         mode=0
