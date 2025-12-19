@@ -16,6 +16,7 @@ cur_pos_abs = 0
 cur_vel = 0
 cur_acc = 0
 Vgoal=0
+Vgoal_L=0
 
 buffer_dyn_Srope = deque([0.0]*3, maxlen=3)
 buffer_weight_Srope = deque([0.0]*30, maxlen=50)
@@ -161,6 +162,7 @@ def main():
                     print('Init enter!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
                     Vgoal = 4000
                     myXYZ.AxisMode_Jog(3, 30, Vgoal)
+                    Vgoal_L=Vgoal
                     time.sleep(0.3)
                 mode = 2 # 负载模式
                 last_mode = mode
@@ -170,7 +172,9 @@ def main():
                     Vgoal = 2 * err
                 else:
                     Vgoal = 5 * err
-                Vgoal = np.clip(Vgoal, -5000, 8000)
+                # Vgoal = np.clip(Vgoal, Vgoal_L-150, Vgoal_L+150)
+                Vgoal = np.clip(Vgoal, -8000, 10000)
+                diff = Vgoal-Vgoal_L
                 if Pnum % 10 == 0:
                     print(
                         'Mode:', mode,
@@ -183,10 +187,11 @@ def main():
                         )
                 plt_pres.append(int(current_pres_force))
                 plt_err.append(int(err)/10)
-                # plt_acc.append(int(ic_touch.current_acceleration))
+                plt_acc.append(int(diff))
                 plt_vgoal.append(int(Vgoal)/10)
                 # plt_BdN.append(int(ic_touch.Bd*Vgoal)/10)
             myXYZ.AxisMode_Jog(3, 30, Vgoal)
+            Vgoal_L=Vgoal
             Pnum += 1
 
     except KeyboardInterrupt:
@@ -197,7 +202,7 @@ def main():
         x = range(len(plt_err))
         # plt.plot(x, plt_BdN, 'b-', label='BdN/10', linewidth=1.5)
         plt.plot(x, plt_err, 'r-', label='err/10', linewidth=1.5)
-        # plt.plot(x, plt_acc, 'g-', label='acc', linewidth=1.5)
+        plt.plot(x, plt_acc, 'g-', label='acc', linewidth=1.5)
         plt.plot(x, plt_vgoal, 'k-', label='vgoal/100', linewidth=1.5)
         plt.legend()
         plt.grid(True, alpha=0.3)

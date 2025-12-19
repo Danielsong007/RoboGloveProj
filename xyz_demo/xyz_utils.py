@@ -57,7 +57,6 @@ class xyz_utils():
 
     def Safe_Jog(self):
         InitialPos=self.Get_Pos(3)
-        # print('Initial:',InitialPos)
         ReV9=self.dll.GA_ZeroPos(1,1)
         ReV10=self.dll.GA_ZeroPos(2,1)
         ReV11=self.dll.GA_ZeroPos(4,1)
@@ -65,6 +64,22 @@ class xyz_utils():
         SoftLimitUp=int(1964000000-InitialPos)
         SoftLimitDown=int(1949000000-InitialPos)
         ReV20=self.dll.GA_SetSoftLimit(3,SoftLimitUp,SoftLimitDown) # Soft Limit
+
+        axis_id = 3
+        FVAULE = c_int32(0)
+        nFlag=c_int16(0)
+        i=0
+        while i<3:
+            i=i+1
+            a = self.dll.GA_ECatSetSdoValue(axis_id, 0x607F, 0, 2147483647, 4) # Max Velocity
+            time.sleep(0.05)
+            a = self.dll.GA_ECatSetSdoValue(axis_id, 0x6065, 0, 10048576, 4) # Allowed speed err
+            time.sleep(0.05)
+        a = self.dll.GA_ECatGetSdoValue(axis_id, 0x607F, 0, byref(FVAULE), byref(nFlag), 4, 0)
+        print ('607F is reset to: ', FVAULE)
+        self.dll.GA_ECatGetSdoValue(axis_id, 0x6065, 0, byref(FVAULE), byref(nFlag), 4, 0)
+        print('6065 is reset to: ', FVAULE)
+
         return(int(InitialPos))
 
     def Get_Pos(self,axis_id):
@@ -91,17 +106,6 @@ class xyz_utils():
         nFlag=c_int16(0)
         a = self.dll.GA_ECatGetSdoValue(axis_id, 0x6060, 0, byref(FVAULE), byref(nFlag), 1, 0)
         print (a,FVAULE)
-        
-        i=0
-        while i<3:
-            i=i+1
-            Value=3300000 # Max Velocity
-            a = self.dll.GA_ECatSetSdoValue(axis_id, 0x607F, 0, Value, 4)
-            time.sleep(0.05)
-        FVAULE = c_int32(0)
-        nFlag=c_int16(0)
-        a = self.dll.GA_ECatGetSdoValue(axis_id, 0x607F, 0, byref(FVAULE), byref(nFlag), 4, 0)
-        print (a,FVAULE)
 
         i=0
         while i<3:
@@ -122,7 +126,7 @@ class xyz_utils():
             time.sleep(0.05)
         FVAULE = c_int16(0)
         nFlag=c_int16(0)
-        a = self.dll.GA_ECatGetSdoValue(axis_id, 0x607F, 0, byref(FVAULE), byref(nFlag), 4, 0)
+        a = self.dll.GA_ECatGetSdoValue(axis_id, 0x6072, 0, byref(FVAULE), byref(nFlag), 4, 0)
         print (a,FVAULE)
 
     def Set_Torque_Multi(self,axis_id,torque): # 设置目标转矩(6071h), 0.1%单位, 100表示10%额定转矩
@@ -147,7 +151,7 @@ class xyz_utils():
         T_Actual = c_int16(0)
         self.dll.GA_ECatGetSdoValue(axis_id, 0x6077, 0, byref(T_Actual), byref(nFlag), 2, 0)
         V_Actual = c_int32(0)
-        self.dll.GA_ECatGetSdoValue(axis_id, 0x606C, 0, byref(V_Actual), byref(nFlag), 4, 0)
+        self.dll.GA_ECatGetSdoValue(axis_id, 0x606C, 0, byref(V_Actual), byref(nFlag), 4, 0)        
         return T_Sent.value,T_Actual.value,V_Actual.value
     
     def Read_IOs(self):
@@ -157,41 +161,41 @@ class xyz_utils():
         return Value.value
 
 
-# Torque Demo
-if __name__ == "__main__":
-    myXYZ = xyz_utils()
-    myXYZ.OpenEnableZero_ALL()
-    myXYZ.AxisMode_Torque(3) # Only current mode
-    try:
-        while True:
-            myXYZ.Set_Torque(3,80)
-            myXYZ.Read_Paras(3)
-            print(myXYZ.Get_Pos(3))
-            time.sleep(0.01)
-    except KeyboardInterrupt:
-        print("Ctrl-C is pressed!")
-    finally:
-        myXYZ.Set_Torque(3,0)
-        myXYZ.SafeQuit()
-        sys.exit(0)
-
-# # Jog Demo
+# # Torque Demo
 # if __name__ == "__main__":
 #     myXYZ = xyz_utils()
 #     myXYZ.OpenEnableZero_ALL()
-#     myXYZ.Safe_Jog()
+#     myXYZ.AxisMode_Torque(3) # Only current mode
 #     try:
 #         while True:
-#             # myXYZ.AxisMode_Jog(1,6,-400)
-#             # myXYZ.AxisMode_Jog(2,2,-200) # - to me
-#             myXYZ.AxisMode_Jog(3,30,-2000)
+#             myXYZ.Set_Torque(3,80)
+#             myXYZ.Read_Paras(3)
 #             print(myXYZ.Get_Pos(3))
-#             # IOvalue=myXYZ.Read_IOs()
-#             # print(IOvalue)
-#             time.sleep(0.05)
+#             time.sleep(0.01)
 #     except KeyboardInterrupt:
 #         print("Ctrl-C is pressed!")
 #     finally:
+#         myXYZ.Set_Torque(3,0)
 #         myXYZ.SafeQuit()
 #         sys.exit(0)
+
+# Jog Demo
+if __name__ == "__main__":
+    myXYZ = xyz_utils()
+    myXYZ.OpenEnableZero_ALL()
+    myXYZ.Safe_Jog()
+    try:
+        while True:
+            # myXYZ.AxisMode_Jog(1,6,-400)
+            # myXYZ.AxisMode_Jog(2,2,-200) # - to me
+            myXYZ.AxisMode_Jog(3,30,2000)
+            print(myXYZ.Get_Pos(3))
+            # IOvalue=myXYZ.Read_IOs()
+            # print(IOvalue)
+            time.sleep(0.05)
+    except KeyboardInterrupt:
+        print("Ctrl-C is pressed!")
+    finally:
+        myXYZ.SafeQuit()
+        sys.exit(0)
 
