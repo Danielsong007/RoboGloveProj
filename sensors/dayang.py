@@ -32,7 +32,7 @@ if __name__ == "__main__":
             dt=cur_t-last_t
             last_t=cur_t
             force=sensor.read_angles()
-            print(force,1/dt)
+            print(force)
     except KeyboardInterrupt:
         print("KeyboardExit")
     finally:
