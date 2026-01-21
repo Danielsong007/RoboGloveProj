@@ -120,8 +120,8 @@ class IC_ROPE:
 
 class IC_TOUCH:
     def __init__(self):
-        self.Md = 5  # 期望质量 (虚拟质量)
-        self.Bd = 0.05  # 期望阻尼
+        self.Md = 1.5  # 期望质量 (虚拟质量)
+        self.Bd = 0.02  # 期望阻尼
         self.current_acceleration = 0.0
         
     def impedance_control(self, human_force, cur_pos_abs, Vgoal):
@@ -151,7 +151,7 @@ def main():
         #     time.sleep(0.1)
         #     print('Waiting Touch Data!!')
         
-        Pres_valve=30
+        Pres_valve=200
         Pnum=0
         mode=0
         last_mode=0
@@ -189,10 +189,10 @@ def main():
                     time.sleep(0.3)
                 mode = 2 # 负载模式
                 last_mode = mode
-                balance_force = 100
+                balance_force = 300
                 human_force = current_pres_force - balance_force
                 if human_force < 0:
-                    human_force = human_force*6
+                    human_force = human_force*2
                 Vgoal = ic_touch.impedance_control(human_force, cur_pos_abs, Vgoal)
                 if Pnum % 10 == 0:
                     print(
