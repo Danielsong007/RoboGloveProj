@@ -27,7 +27,7 @@ if __name__ == "__main__":
     try:
         last_t=time.time()
         while True:
-            time.sleep(0.00001)  # 等待 100ms，确保命令已发送
+            time.sleep(0.01)  # 等待 100ms，确保命令已发送
             cur_t=time.time()
             dt=cur_t-last_t
             last_t=cur_t

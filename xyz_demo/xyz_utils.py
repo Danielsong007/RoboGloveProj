@@ -62,7 +62,7 @@ class xyz_utils():
         ReV11=self.dll.GA_ZeroPos(4,1)
         ReV12=self.dll.GA_ZeroPos(3,1)
         SoftLimitUp=int(1964000000-InitialPos)
-        SoftLimitDown=int(1949000000-InitialPos)
+        SoftLimitDown=int(1950000000-InitialPos)
         ReV20=self.dll.GA_SetSoftLimit(3,SoftLimitUp,SoftLimitDown) # Soft Limit
 
         axis_id = 3

@@ -120,8 +120,8 @@ class IC_ROPE:
 
 class IC_TOUCH:
     def __init__(self):
-        self.Md = 1.5  # 期望质量 (虚拟质量)
-        self.Bd = 0.02  # 期望阻尼
+        self.Md = 4  # 期望质量 (虚拟质量)
+        self.Bd = 0.05  # 期望阻尼
         self.current_acceleration = 0.0
         
     def impedance_control(self, human_force, cur_pos_abs, Vgoal):
@@ -133,7 +133,7 @@ class IC_TOUCH:
         self.current_acceleration = (human_force - self.Bd * self.current_velocity) / self.Md
         # self.current_acceleration = np.clip(self.current_acceleration, -max_acc, max_acc)
         self.current_velocity += self.current_acceleration
-        self.current_velocity = np.clip(self.current_velocity, -5000, 8000)
+        self.current_velocity = np.clip(self.current_velocity, -6000, 8000)
         return self.current_velocity
 
 def main():
@@ -151,7 +151,7 @@ def main():
         #     time.sleep(0.1)
         #     print('Waiting Touch Data!!')
         
-        Pres_valve=200
+        Pres_valve=150
         Pnum=0
         mode=0
         last_mode=0
@@ -169,13 +169,13 @@ def main():
             if current_pres_force < Pres_valve:
                 mode = 3 # 松弛模式
                 last_mode = mode
-                balance_force = 150
+                balance_force = 100
                 Vgoal = ic_rope.impedance_control(current_rope_force, balance_force, cur_pos_abs)
                 if Pnum % 10 == 0:
                     print(
                         'Mode:', mode,
-                        'Pres_F:', int(current_pres_force),
-                        'Rope_F:', int(current_rope_force),
+                        # 'Pres_F:', int(current_pres_force),
+                        # 'Rope_F:', int(current_rope_force),
                         'Human_F:', int(balance_force - current_rope_force),
                         'Vgoal:', int(Vgoal),
                         'diff:', int(ic_rope.current_acceleration),
@@ -192,12 +192,15 @@ def main():
                 balance_force = 300
                 human_force = current_pres_force - balance_force
                 if human_force < 0:
-                    human_force = human_force*2
+                    human_force = human_force*3
+                else:
+                    human_force = human_force*4
+                    human_force = np.clip(human_force, 0, 350)
                 Vgoal = ic_touch.impedance_control(human_force, cur_pos_abs, Vgoal)
                 if Pnum % 10 == 0:
                     print(
                         'Mode:', mode,
-                        'Pres_F:', int(current_pres_force),
+                        # 'Pres_F:', int(current_pres_force),
                         # 'Rope_F:', int(current_rope_force),
                         'Human_F:', int(human_force),
                         'Vgoal:', int(Vgoal),
@@ -209,6 +212,8 @@ def main():
                 plt_acc.append(int(ic_touch.current_acceleration))
                 plt_vgoal.append(int(Vgoal)/10)
                 plt_BdN.append(int(ic_touch.Bd*Vgoal)/10)
+            if cur_pos_abs < 1948000000:
+                Vgoal=-200
             myXYZ.AxisMode_Jog(3, 30, Vgoal)
             Pnum += 1
 
@@ -224,7 +229,7 @@ def main():
         plt.plot(x, plt_vgoal, 'k-', label='vgoal/100', linewidth=1.5)
         plt.legend()
         plt.grid(True, alpha=0.3)
-        plt.show()
+        # plt.show()
 
         sys.exit(0)
 
